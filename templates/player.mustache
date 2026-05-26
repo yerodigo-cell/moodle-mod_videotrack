@@ -1,0 +1,35 @@
+<div class="videotrack-container p-3 mb-4 bg-white rounded border shadow-sm">
+    
+    {{#isyoutube}}
+        <!-- Reproductor de YouTube -->
+        <div class="embed-responsive embed-responsive-16by9" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">
+            <div id="youtube-player" data-videoid="{{ytid}}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+        </div>
+    {{/isyoutube}}
+    
+    {{^isyoutube}}
+        <!-- Reproductor nativo HTML5 (Archivos locales / MP4 directo) -->
+        <div style="border-radius: 8px; overflow: hidden; background: #000; text-align: center;">
+            <video id="videotrack-player" controls style="width: 100%; max-height: 650px;">
+                <source src="{{videourl}}" type="video/mp4">
+                Tu navegador no soporta video HTML5.
+            </video>
+        </div>
+    {{/isyoutube}}
+
+    <!-- Interfaz de Progreso -->
+    <div class="mt-4 px-2">
+        <h4 class="h5 font-weight-bold">{{ progresstitle }}</h4>
+        <div class="progress mt-2" style="height: 25px; border-radius: 12px; background-color: #e9ecef;">
+            <div id="vt-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: {{currentpercent}}%; min-width: 35px; transition: width 0.5s;" aria-valuenow="{{currentpercent}}" aria-valuemin="0" aria-valuemax="100">
+                <span id="vt-progress-text" class="font-weight-bold" style="font-size: 14px;">{{currentpercent}}%</span>
+            </div>
+        </div>
+        <p class="mt-2 text-muted small">{{{ progresshint }}}</p>
+        
+        <!-- Mensaje de éxito -->
+        <div id="vt-success-msg" class="alert alert-success mt-3 {{^iscompleted}}d-none{{/iscompleted}}" style="border-left: 5px solid #28a745;">
+            <i class="fa fa-check-circle mr-1"></i> {{ successmsg }}
+        </div>
+    </div>
+</div>
