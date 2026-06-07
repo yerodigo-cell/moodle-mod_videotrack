@@ -54,3 +54,4 @@ $string['videofile'] = 'Video File (Local)';
 $string['videofile_help'] = 'Upload your MP4 video file here. Note: If you enter an external URL above, it will be prioritized over this file.';
 $string['videourl'] = 'Video URL (External)';
 $string['videourl_help'] = 'Paste the YouTube link or a direct MP4 URL here. If you prefer to upload a file directly to Moodle, leave this blank and use the file uploader below.';
+$string['videotrack:addinstance'] = 'Add a new VideoTrack';
