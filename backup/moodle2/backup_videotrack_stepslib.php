@@ -23,7 +23,6 @@
  */
 
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Structure step class for backup.

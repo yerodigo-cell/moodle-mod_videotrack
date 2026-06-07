@@ -58,7 +58,7 @@ $table = new html_table();
 $table->head = [
     get_string('name'),
     get_string('targetpercent', 'mod_videotrack'),
-    get_string('report', 'mod_videotrack')
+    get_string('report', 'mod_videotrack'),
 ];
 $table->align = ['left', 'center', 'center'];
 
@@ -101,7 +101,7 @@ foreach ($instances as $cm) {
     $table->data[] = [
         $namelink,
         $percenttext,
-        $reportlink
+        $reportlink,
     ];
 }
 

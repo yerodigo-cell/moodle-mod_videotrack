@@ -48,7 +48,7 @@ $event = \mod_videotrack\event\course_module_viewed::create([
     'other' => [
         'instanceid' => $videotrack->id,
         'cmid' => $cm->id,
-    ]
+    ],
 ]);
 $event->add_record_snapshot('course_modules', $cm);
 $event->add_record_snapshot('videotrack', $videotrack);

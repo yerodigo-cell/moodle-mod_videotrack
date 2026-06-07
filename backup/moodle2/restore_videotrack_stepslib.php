@@ -23,10 +23,20 @@
  */
 
 
-defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Structure step to restore one videotrack activity.
+ *
+ * @package    mod_videotrack
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class restore_videotrack_activity_structure_step extends restore_activity_structure_step {
-
+    /**
+     * Define the structure.
+     *
+     * @return array
+     */
     protected function define_structure() {
         $paths = [];
         $paths[] = new restore_path_element('videotrack', '/activity/videotrack');
@@ -34,6 +44,11 @@ class restore_videotrack_activity_structure_step extends restore_activity_struct
         return $this->prepare_activity_structure($paths);
     }
 
+    /**
+     * Process the videotrack data.
+     *
+     * @param array $data The data to process.
+     */
     protected function process_videotrack($data) {
         global $DB;
         $data = (object)$data;
@@ -50,6 +65,9 @@ class restore_videotrack_activity_structure_step extends restore_activity_struct
         $this->apply_activity_instance($newitemid);
     }
 
+    /**
+     * After execute process.
+     */
     protected function after_execute() {
         // Restore files associated with 'intro' and 'video' fileareas.
         $this->add_related_files('mod_videotrack', 'intro', null);
