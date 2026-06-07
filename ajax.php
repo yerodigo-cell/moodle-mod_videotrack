@@ -58,9 +58,9 @@ if ($progress) {
     $DB->insert_record('videotrack_progress', $progress);
 }
 
-// Actualizar Moodle si alcanzó la meta
+// Actualizar Moodle si alcanzó la meta.
 if ($completed) {
-    require_once($CFG->libdir.'/completionlib.php');
+    require_once($CFG->libdir . '/completionlib.php');
     $completion = new completion_info($course);
     if ($completion->is_enabled($cm)) {
         $completion->set_module_viewed($cm);

@@ -65,7 +65,7 @@ foreach ($users as $key => $user) {
 if (empty($users)) {
     echo $OUTPUT->notification(get_string('noresponses', 'mod_videotrack'), 'info');
 } else {
-    // Crear tabla nativa de Moodle con estilos Bootstrap
+    // Crear tabla nativa de Moodle con estilos Bootstrap.
     $table = new html_table();
     $table->head = [
         get_string('student', 'mod_videotrack'),
