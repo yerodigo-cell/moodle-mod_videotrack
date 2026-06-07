@@ -25,12 +25,17 @@
 
 namespace mod_videotrack\courseformat;
 
-defined('MOODLE_INTERNAL') || die();
-
 use core_courseformat\activityoverviewbase;
 use core_courseformat\local\overview\overviewitem;
 use core\output\local\properties\text_align;
 
+/**
+ * Overview class for mod_videotrack.
+ *
+ * @package    mod_videotrack
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class overview extends activityoverviewbase {
 
     /**

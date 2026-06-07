@@ -25,12 +25,23 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Structure step class for backup.
+ *
+ * @package    mod_videotrack
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class backup_videotrack_activity_structure_step extends backup_activity_structure_step {
-
+    /**
+     * Define the structure for the activity.
+     *
+     * @return \backup_nested_element
+     */
     protected function define_structure() {
         // XML structure element.
         $videotrack = new backup_nested_element('videotrack', ['id'], [
-            'course', 'name', 'intro', 'introformat', 'videourl', 'targetpercent', 'timecreated', 'timemodified'
+            'course', 'name', 'intro', 'introformat', 'videourl', 'targetpercent', 'timecreated', 'timemodified',
         ]);
 
         // Connect database table fields.

@@ -24,9 +24,9 @@
 
 require(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
-require_once($CFG->libdir.'/completionlib.php'); 
+require_once($CFG->libdir . '/completionlib.php');
 
-$id = required_param('id', PARAM_INT); 
+$id = required_param('id', PARAM_INT);
 
 $cm = get_coursemodule_from_id('videotrack', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
@@ -40,14 +40,14 @@ $PAGE->set_title(format_string($videotrack->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
-// Disparar evento de Moodle course_module_viewed para reportes y plugins externos (ej. Level Up XP)
+// Disparar evento de Moodle course_module_viewed para reportes y plugins externos (ej. Level Up XP).
 $event = \mod_videotrack\event\course_module_viewed::create([
     'objectid' => $videotrack->id,
     'context' => $context,
     'courseid' => $course->id,
     'other' => [
         'instanceid' => $videotrack->id,
-        'cmid' => $cm->id
+        'cmid' => $cm->id,
     ]
 ]);
 $event->add_record_snapshot('course_modules', $cm);
@@ -56,7 +56,7 @@ $event->trigger();
 
 // 3. Process video URL and check if it is a YouTube video (including Shorts).
 $videourl = trim($videotrack->videourl ?? '');
-$videourl = html_entity_decode($videourl); 
+$videourl = html_entity_decode($videourl);
 $isyoutube = false;
 $ytid = '';
 
@@ -67,7 +67,7 @@ if (!empty($videourl)) {
         $path = $parsed['path'] ?? '';
         $query = $parsed['query'] ?? '';
 
-        // Método 1: Estándar (watch?v=ID)
+        // Método 1: Estándar (watch?v=ID).
         if ($query) {
             parse_str($query, $params);
             if (isset($params['v'])) {
@@ -75,25 +75,25 @@ if (!empty($videourl)) {
             }
         }
 
-        // Método 2: Shorts, Embed o Live (youtube.com/shorts/ID)
+        // Método 2: Shorts, Embed o Live (youtube.com/shorts/ID).
         if (empty($ytid) && !empty($path)) {
-            $path_parts = explode('/', trim($path, '/'));
-            foreach ($path_parts as $index => $part) {
+            $pathparts = explode('/', trim($path, '/'));
+            foreach ($pathparts as $index => $part) {
                 if (in_array(strtolower($part), ['shorts', 'embed', 'v', 'live'])) {
-                    if (isset($path_parts[$index + 1])) {
-                        $ytid = $path_parts[$index + 1];
+                    if (isset($pathparts[$index + 1])) {
+                        $ytid = $pathparts[$index + 1];
                         break;
                     }
                 }
             }
         }
 
-        // Método 3: Enlace corto (youtu.be/ID)
+        // Método 3: Enlace corto (youtu.be/ID).
         if (empty($ytid) && stripos($videourl, 'youtu.be') !== false) {
             $ytid = trim($path, '/');
         }
 
-        // Limpiar el ID eliminando parámetros de consulta (?si=..., etc.)
+        // Limpiar el ID eliminando parámetros de consulta (?si=..., etc.).
         if (!empty($ytid)) {
             $ytid = explode('?', $ytid)[0];
             $ytid = explode('&', $ytid)[0];
@@ -155,15 +155,15 @@ $templatecontext = [
     'progresshint' => $isfree
         ? get_string('progressfree', 'mod_videotrack')
         : get_string('progresshint', 'mod_videotrack', $videotrack->targetpercent),
-    'successmsg' => get_string('successmsg', 'mod_videotrack')
+    'successmsg' => get_string('successmsg', 'mod_videotrack'),
 ];
 
 $PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
-    $cm->id, 
-    $videotrack->targetpercent, 
-    $isyoutube, 
-    $ytid, 
-    $currentpercent
+    $cm->id,
+    $videotrack->targetpercent,
+    $isyoutube,
+    $ytid,
+    $currentpercent,
 ]);
 
 echo $OUTPUT->header();

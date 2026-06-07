@@ -27,24 +27,45 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/videotrack/backup/moodle2/backup_videotrack_stepslib.php');
 
+/**
+ * Task class for backup.
+ *
+ * @package    mod_videotrack
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class backup_videotrack_activity_task extends backup_activity_task {
-
+    /**
+     * Define the settings for the activity.
+     */
     protected function define_my_settings() {
         // No custom settings.
     }
 
+    /**
+     * Define the steps for the activity.
+     */
     protected function define_my_steps() {
         $this->add_step(new backup_videotrack_activity_structure_step('videotrack_structure', 'videotrack.xml'));
     }
 
-    static public function get_encode_contenthash($content) {
+    /**
+     * Get the encode contenthash.
+     *
+     * @param string $content The content to encode.
+     * @return string The encoded contenthash.
+     */
+    public static function get_encode_contenthash($content) {
         return self::encode_contenthash($content);
     }
 
     /**
      * Codificar los enlaces internos de la actividad para que sean transportables.
+     *
+     * @param string $content The content to encode.
+     * @return string The encoded content links.
      */
-    static public function encode_content_links($content) {
+    public static function encode_content_links($content) {
         global $CFG;
 
         $base = preg_quote($CFG->wwwroot, '/');
@@ -60,10 +81,20 @@ class backup_videotrack_activity_task extends backup_activity_task {
         return $content;
     }
 
+    /**
+     * Get the file areas.
+     *
+     * @return array
+     */
     public function get_fileareas() {
         return ['intro', 'video'];
     }
 
+    /**
+     * Get the config data attributes.
+     *
+     * @return array
+     */
     public function get_configdata_attributes() {
         return [];
     }

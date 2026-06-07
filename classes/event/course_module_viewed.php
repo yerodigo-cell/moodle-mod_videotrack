@@ -25,16 +25,29 @@
 
 namespace mod_videotrack\event;
 
-defined('MOODLE_INTERNAL') || die();
-
+/**
+ * The course_module_viewed event class.
+ *
+ * @package    mod_videotrack
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class course_module_viewed extends \core\event\course_module_viewed {
 
+    /**
+     * Init method.
+     */
     protected function init() {
         $this->data['crud'] = 'r';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
         $this->data['objecttable'] = 'videotrack';
     }
 
+    /**
+     * Returns description of what happened.
+     *
+     * @return string
+     */
     public static function get_name() {
         return get_string('eventcoursemoduleviewed', 'mod_videotrack');
     }

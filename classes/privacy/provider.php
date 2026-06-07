@@ -24,8 +24,6 @@
 
 namespace mod_videotrack\privacy;
 
-defined('MOODLE_INTERNAL') || die();
-
 use core_privacy\local\metadata\collection;
 use core_privacy\local\request\approved_contextlist;
 use core_privacy\local\request\approved_userlist;
@@ -33,11 +31,17 @@ use core_privacy\local\request\contextlist;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
+/**
+ * Privacy provider.
+ *
+ * @package    mod_videotrack
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class provider implements
     \core_privacy\local\metadata\provider,
-    \core_privacy\local\request\plugin\provider,
-    \core_privacy\local\request\core_userlist_provider {
-
+    \core_privacy\local\request\core_userlist_provider,
+    \core_privacy\local\request\plugin\provider {
     /**
      * Returns metadata about this system.
      *
@@ -125,7 +129,7 @@ class provider implements
 
         $userid = $contextlist->get_user()->id;
 
-        list($contextsql, $contextparams) = $DB->get_in_or_equal($contextlist->get_contextids(), SQL_PARAMS_NAMED);
+        [$contextsql, $contextparams] = $DB->get_in_or_equal($contextlist->get_contextids(), SQL_PARAMS_NAMED);
 
         $sql = "SELECT cm.id AS cmid, v.name, vp.highestpercent, vp.iscompleted, vp.timecreated, vp.timemodified
                   FROM {context} c
@@ -231,7 +235,7 @@ class provider implements
             return;
         }
 
-        list($usersql, $userparams) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        [$usersql, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
 
         $params = ['videotrackid' => $cm->instance] + $userparams;
 
