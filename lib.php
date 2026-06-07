@@ -70,19 +70,25 @@ function videotrack_update_instance($videotrack, $mform = null) {
 
 function videotrack_delete_instance($id) {
     global $DB;
-    if (!$videotrack = $DB->get_record('videotrack', ['id' => $id])) return false;
+    if (!$videotrack = $DB->get_record('videotrack', ['id' => $id])) {
+        // If the record does not exist, we MUST return true.
+        // Returning false would cause Moodle to get stuck in an infinite deletion loop.
+        return true;
+    }
     
     try {
         $DB->delete_records('videotrack_progress', ['videotrackid' => $videotrack->id]);
     } catch (\Throwable $e) {}
     
-    $DB->delete_records('videotrack', ['id' => $videotrack->id]);
+    // Get the CM and delete files BEFORE deleting the videotrack record
     $cm = get_coursemodule_from_instance('videotrack', $id);
     if ($cm) {
         $context = context_module::instance($cm->id);
         $fs = get_file_storage();
         $fs->delete_area_files($context->id, 'mod_videotrack', 'video');
     }
+    
+    $DB->delete_records('videotrack', ['id' => $videotrack->id]);
     return true;
 }
 
