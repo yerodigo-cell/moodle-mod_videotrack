@@ -23,17 +23,23 @@
  */
 
 
-defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Add a new instance of the videotrack activity.
+ *
+ * @param stdClass $videotrack The activity instance object.
+ * @param mod_videotrack_mod_form|null $mform The form.
+ * @return int The ID of the new instance.
+ */
 function videotrack_add_instance($videotrack, $mform = null) {
     global $DB;
     $videotrack->timecreated = time();
     $videotrack->timemodified = $videotrack->timecreated;
-    
+
     $id = $DB->insert_record('videotrack', $videotrack);
-    
+
     if (isset($videotrack->video)) {
-        // En add_instance $videotrack->coursemodule es el ID del cm recién creado
+        // En add_instance $videotrack->coursemodule es el ID del cm recién creado.
         $context = context_module::instance($videotrack->coursemodule);
         file_save_draft_area_files(
             $videotrack->video,
@@ -47,13 +53,20 @@ function videotrack_add_instance($videotrack, $mform = null) {
     return $id;
 }
 
+/**
+ * Update an existing instance of the videotrack activity.
+ *
+ * @param stdClass $videotrack The activity instance object.
+ * @param mod_videotrack_mod_form|null $mform The form.
+ * @return bool True on success.
+ */
 function videotrack_update_instance($videotrack, $mform = null) {
     global $DB;
     $videotrack->timemodified = time();
     $videotrack->id = $videotrack->instance;
-    
+
     $DB->update_record('videotrack', $videotrack);
-    
+
     if (isset($videotrack->video)) {
         $context = context_module::instance($videotrack->coursemodule);
         file_save_draft_area_files(
@@ -78,9 +91,10 @@ function videotrack_delete_instance($id) {
     
     try {
         $DB->delete_records('videotrack_progress', ['videotrackid' => $videotrack->id]);
-    } catch (\Throwable $e) {}
-    
-    // Get the CM and delete files BEFORE deleting the videotrack record
+    } catch (\Throwable $e) {
+    }
+
+    // Get the CM and delete files BEFORE deleting the videotrack record.
     $cm = get_coursemodule_from_instance('videotrack', $id);
     if ($cm) {
         $context = context_module::instance($cm->id);
@@ -142,7 +156,7 @@ function videotrack_extend_settings_navigation(settings_navigation $settingsnav,
     global $PAGE;
     $cm = $PAGE->cm;
     
-    // Si no hay información del módulo de curso o no existe el nodo principal, salimos
+    // Si no hay información del módulo de curso o no existe el nodo principal, salimos.
     if (!$cm || !$node) {
         return;
     }
@@ -151,7 +165,7 @@ function videotrack_extend_settings_navigation(settings_navigation $settingsnav,
     if (has_capability('moodle/course:manageactivities', $context)) {
         $url = new moodle_url('/mod/videotrack/report.php', ['id' => $cm->id]);
         
-        // Agregamos el reporte directamente al nodo de la actividad
+        // Agregamos el reporte directamente al nodo de la actividad.
         $reportnode = $node->add(
             get_string('report', 'mod_videotrack'),
             $url,

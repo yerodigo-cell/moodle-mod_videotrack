@@ -52,6 +52,6 @@ $string['targetpercent'] = 'Porcentaje requerido (%)';
 $string['targetpercent_help'] = 'El porcentaje del video que el estudiante debe ver para completar la actividad (por defecto 80%). Ingresa 0 si quieres que el video sea libre y se pueda adelantar sin restricciones.';
 $string['videofile'] = 'Archivo de Video (Local)';
 $string['videofile_help'] = 'Sube tu archivo de video MP4 aquí. Nota: Si ingresas una URL externa arriba, tendrá prioridad sobre este archivo.';
+$string['videotrack:addinstance'] = 'Añadir un nuevo VideoTrack';
 $string['videourl'] = 'URL del video (Externo)';
 $string['videourl_help'] = 'Pega aquí el enlace de YouTube o URL directa MP4. Si prefieres subir un archivo directamente a Moodle, deja esto en blanco y usa el subidor de archivos de abajo.';
-$string['videotrack:addinstance'] = 'Añadir un nuevo VideoTrack';
