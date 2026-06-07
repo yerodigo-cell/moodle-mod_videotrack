@@ -134,6 +134,9 @@ function videotrack_supports($feature) {
 
 /**
  * Extends settings secondary course/activity navigation (tabs) with report.php for teachers.
+ *
+ * @param settings_navigation $settingsnav The settings navigation object.
+ * @param navigation_node|null $node The navigation node.
  */
 function videotrack_extend_settings_navigation(settings_navigation $settingsnav, navigation_node $node = null) {
     global $PAGE;
