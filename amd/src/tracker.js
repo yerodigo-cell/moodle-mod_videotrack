@@ -1,6 +1,9 @@
 /**
  * Módulo AMD para rastrear el progreso del video
+ *
+ * @module mod_videotrack/tracker
  */
+/* global YT */
 define(['jquery', 'core/config'], function($, cfg) {
     return {
         init: function(cmid, targetPercent, isYouTube, videoId, currentPercent) {
@@ -27,7 +30,7 @@ define(['jquery', 'core/config'], function($, cfg) {
             var updateUI = function(percent) {
                 if (percent > highestPercent) {
                     highestPercent = percent;
-                    
+
                     $('#vt-progress-bar').css('width', highestPercent + '%');
                     $('#vt-progress-text').text(Math.floor(highestPercent) + '%');
 
@@ -48,34 +51,48 @@ define(['jquery', 'core/config'], function($, cfg) {
                 var video = document.getElementById('videotrack-player');
                 if (video) {
                     video.addEventListener('seeking', function() {
-                        if (isFreeNavigation) return; 
-                        if (isForcing || video.duration <= 0) return;
-                        
+                        if (isFreeNavigation) {
+                            return;
+                        }
+                        if (isForcing || video.duration <= 0) {
+                            return;
+                        }
+
                         var recordedMax = (highestPercent / 100) * video.duration;
-                        if (recordedMax > maxAllowedTime) maxAllowedTime = recordedMax;
+                        if (recordedMax > maxAllowedTime) {
+                            maxAllowedTime = recordedMax;
+                        }
 
                         if (video.currentTime > maxAllowedTime + 1) {
                             isForcing = true;
                             video.currentTime = maxAllowedTime;
-                            setTimeout(function(){ isForcing = false; }, 50);
+                            setTimeout(function() {
+                                isForcing = false;
+                            }, 50);
                         }
                     });
 
                     video.addEventListener('timeupdate', function() {
-                        if (video.duration <= 0) return;
-                        
+                        if (video.duration <= 0) {
+                            return;
+                        }
+
                         if (isFreeNavigation) {
                             updateUI((video.currentTime / video.duration) * 100);
                             return;
                         }
 
                         var recordedMax = (highestPercent / 100) * video.duration;
-                        if (recordedMax > maxAllowedTime) maxAllowedTime = recordedMax;
+                        if (recordedMax > maxAllowedTime) {
+                            maxAllowedTime = recordedMax;
+                        }
 
                         if (video.currentTime > maxAllowedTime + 1) {
                             isForcing = true;
                             video.currentTime = maxAllowedTime;
-                            setTimeout(function(){ isForcing = false; }, 50);
+                            setTimeout(function() {
+                                isForcing = false;
+                            }, 50);
                         } else if (video.currentTime > maxAllowedTime && !video.seeking) {
                             maxAllowedTime = video.currentTime;
                             updateUI((maxAllowedTime / video.duration) * 100);
@@ -119,13 +136,20 @@ define(['jquery', 'core/config'], function($, cfg) {
                     initYTPlayer();
                 }
 
-                function onPlayerStateChange(event) {
+                /**
+                 * Callback para cuando el estado del reproductor cambia.
+                 *
+                 * @param {Object} event Evento de YT.
+                 */
+                var onPlayerStateChange = function(event) {
                     var duration = window.ytPlayer.getDuration();
                     var currentTime = window.ytPlayer.getCurrentTime();
-                    
+
                     if (!isFreeNavigation) {
                         var recordedMax = (highestPercent / 100) * duration;
-                        if (recordedMax > maxAllowedTime) maxAllowedTime = recordedMax;
+                        if (recordedMax > maxAllowedTime) {
+                            maxAllowedTime = recordedMax;
+                        }
 
                         if (event.data == YT.PlayerState.BUFFERING || event.data == YT.PlayerState.PLAYING) {
                             if (currentTime > maxAllowedTime + 1.5) {
@@ -135,16 +159,16 @@ define(['jquery', 'core/config'], function($, cfg) {
                     }
 
                     if (event.data == YT.PlayerState.PLAYING) {
-                        if (window.vtCheckTimer) clearInterval(window.vtCheckTimer);
+                        if (window.vtCheckTimer) {
+                            clearInterval(window.vtCheckTimer);
+                        }
                         window.vtCheckTimer = setInterval(function() {
                             var eDuration = window.ytPlayer.getDuration();
                             var eCurrentTime = window.ytPlayer.getCurrentTime();
-                            
                             if (isFreeNavigation) {
                                 updateUI((eCurrentTime / eDuration) * 100);
                                 return;
                             }
-                            
                             if (eCurrentTime > maxAllowedTime + 1.5) {
                                 window.ytPlayer.seekTo(maxAllowedTime, true);
                             } else if (eCurrentTime > maxAllowedTime) {
@@ -153,8 +177,9 @@ define(['jquery', 'core/config'], function($, cfg) {
                             }
                         }, 500);
                     } else {
-                        if (window.vtCheckTimer) clearInterval(window.vtCheckTimer);
-                        
+                        if (window.vtCheckTimer) {
+                            clearInterval(window.vtCheckTimer);
+                        }
                         // Guardar progreso al pausar
                         if (event.data == YT.PlayerState.PAUSED) {
                             saveProgress(highestPercent);
@@ -166,7 +191,7 @@ define(['jquery', 'core/config'], function($, cfg) {
                         updateUI(100);
                         saveProgress(100);
                     }
-                }
+                };
             }
         }
     };

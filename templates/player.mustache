@@ -1,3 +1,30 @@
+{{!
+    @template mod_videotrack/player
+
+    VideoTrack player template.
+
+    Context variables required for this template:
+    * isyoutube - Whether the video is from YouTube.
+    * ytid - The YouTube video ID.
+    * videourl - The URL of the video file (if not YouTube).
+    * progresstitle - The title for the progress section.
+    * currentpercent - The current progress percentage.
+    * progresshint - A hint text about the required progress.
+    * iscompleted - Whether the user has reached the required percentage.
+    * successmsg - The success message to show upon completion.
+
+    Example context (json):
+    {
+        "isyoutube": false,
+        "ytid": "",
+        "videourl": "https://example.com/video.mp4",
+        "progresstitle": "Progress",
+        "currentpercent": 50,
+        "progresshint": "Watch 80% to complete",
+        "iscompleted": false,
+        "successmsg": "Congratulations!"
+    }
+}}
 <div class="videotrack-container p-3 mb-4 bg-white rounded border shadow-sm">
     
     {{#isyoutube}}
