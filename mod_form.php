@@ -26,8 +26,17 @@
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/course/moodleform_mod.php');
 
+/**
+ * Module form.
+ *
+ * @package    mod_videotrack
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class mod_videotrack_mod_form extends moodleform_mod {
-
+    /**
+     * Define the form.
+     */
     public function definition() {
         global $CFG;
         $mform = $this->_form;
@@ -39,7 +48,7 @@ class mod_videotrack_mod_form extends moodleform_mod {
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
         $this->standard_intro_elements();
-        
+
         $mform->addElement('header', 'video_settings', get_string('pluginname', 'mod_videotrack'));
 
         // Allow leaving this empty if a file is uploaded.
@@ -47,8 +56,13 @@ class mod_videotrack_mod_form extends moodleform_mod {
         $mform->setType('videourl', PARAM_URL);
         $mform->addHelpButton('videourl', 'videourl', 'mod_videotrack');
 
-        $mform->addElement('filemanager', 'video', get_string('videofile', 'mod_videotrack'), null,
-                ['subdirs' => 0, 'maxbytes' => $CFG->maxbytes, 'maxfiles' => 1, 'accepted_types' => ['video']]);
+        $mform->addElement(
+            'filemanager',
+            'video',
+            get_string('videofile', 'mod_videotrack'),
+            null,
+            ['subdirs' => 0, 'maxbytes' => $CFG->maxbytes, 'maxfiles' => 1, 'accepted_types' => ['video']]
+        );
         $mform->addHelpButton('video', 'videofile', 'mod_videotrack');
 
         $mform->addElement('text', 'targetpercent', get_string('targetpercent', 'mod_videotrack'), ['size' => '4']);
@@ -63,7 +77,12 @@ class mod_videotrack_mod_form extends moodleform_mod {
         $this->add_action_buttons();
     }
 
-    public function data_preprocessing(&$default_values) {
+    /**
+     * Data preprocessing.
+     *
+     * @param array $defaultvalues Default values.
+     */
+    public function data_preprocessing(&$defaultvalues) {
         if ($this->current->instance) {
             $draftitemid = file_get_submitted_draft_itemid('video');
             file_prepare_draft_area(
@@ -74,15 +93,22 @@ class mod_videotrack_mod_form extends moodleform_mod {
                 0,
                 ['subdirs' => 0, 'maxfiles' => 1]
             );
-            $default_values['video'] = $draftitemid;
+            $defaultvalues['video'] = $draftitemid;
         }
     }
 
+    /**
+     * Validation.
+     *
+     * @param array $data Data.
+     * @param array $files Files.
+     * @return array Errors.
+     */
     public function validation($data, $files) {
         $errors = parent::validation($data, $files);
         $url = trim($data['videourl'] ?? '');
         global $USER;
-        
+
         $draftitemid = $data['video'] ?? 0;
         $filecontext = context_user::instance($USER->id);
         $fs = get_file_storage();
