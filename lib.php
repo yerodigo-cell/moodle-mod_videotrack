@@ -95,11 +95,7 @@ function videotrack_delete_instance($id) {
         return true;
     }
 
-    try {
-        $DB->delete_records('videotrack_progress', ['videotrackid' => $videotrack->id]);
-    } catch (\Throwable $e) {
-        // Ignored.
-    }
+    $DB->delete_records('videotrack_progress', ['videotrackid' => $videotrack->id]);
 
     // Get the CM and delete files BEFORE deleting the videotrack record.
     $cm = get_coursemodule_from_instance('videotrack', $id);
