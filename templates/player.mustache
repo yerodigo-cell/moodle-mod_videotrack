@@ -27,6 +27,17 @@
 }}
 <div class="videotrack-container p-3 mb-4 bg-white rounded border shadow-sm">
     
+    <!-- Botón de reanudar (Arriba) -->
+    {{#currentpercent}}
+    {{^iscompleted}}
+    <div class="mb-3">
+        <button id="vt-resume-btn" class="btn btn-primary font-weight-bold shadow-sm" style="border-radius: 20px; padding: 8px 20px;">
+            <i class="fa fa-play mr-2"></i> {{ resumebtntext }}
+        </button>
+    </div>
+    {{/iscompleted}}
+    {{/currentpercent}}
+
     {{#isyoutube}}
         <!-- Reproductor de YouTube -->
         <div class="embed-responsive embed-responsive-16by9" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">
@@ -58,13 +69,5 @@
         <div id="vt-success-msg" class="alert alert-success mt-3 {{^iscompleted}}d-none{{/iscompleted}}" style="border-left: 5px solid #28a745;">
             <i class="fa fa-check-circle mr-1"></i> {{ successmsg }}
         </div>
-        <!-- Botón de reanudar -->
-        {{#currentpercent}}
-        {{^iscompleted}}
-        <button id="vt-resume-btn" class="btn btn-outline-primary mt-3">
-            <i class="fa fa-play mr-1"></i> {{ resumebtntext }}
-        </button>
-        {{/iscompleted}}
-        {{/currentpercent}}
     </div>
 </div>
