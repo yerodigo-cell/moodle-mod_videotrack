@@ -70,7 +70,7 @@ class mod_videotrack_mod_form extends moodleform_mod {
         $mform->setDefault('targetpercent', 80);
         // Allow 0 for free exploration mode.
         $mform->addRule('targetpercent', null, 'numeric', null, 'client');
-        $mform->addRule('targetpercent', 'Máximo 100', 'maxlength', 3, 'client');
+        $mform->addRule('targetpercent', 'Maximum 100', 'maxlength', 3, 'client');
         $mform->addHelpButton('targetpercent', 'targetpercent', 'mod_videotrack');
 
         $this->standard_coursemodule_elements();

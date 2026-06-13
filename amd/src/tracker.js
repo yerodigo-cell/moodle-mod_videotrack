@@ -1,10 +1,27 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
- * Módulo AMD para rastrear el progreso del video
+ * AMD module to track video progress.
  *
- * @module mod_videotrack/tracker
+ * @module     mod_videotrack/tracker
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 /* global YT */
-define(['jquery', 'core/config'], function($, cfg) {
+define(['jquery', 'core/ajax'], function($, ajax) {
     return {
         init: function(cmid, targetPercent, isYouTube, videoId, currentPercent) {
             var highestPercent = currentPercent || 0;
@@ -19,11 +36,13 @@ define(['jquery', 'core/config'], function($, cfg) {
                 var floorPercent = Math.floor(percent);
                 if (floorPercent > lastSavedPercent) {
                     lastSavedPercent = floorPercent;
-                    $.post(cfg.wwwroot + '/mod/videotrack/ajax.php', {
-                        cmid: cmid,
-                        percent: floorPercent,
-                        sesskey: cfg.sesskey
-                    });
+                    ajax.call([{
+                        methodname: 'mod_videotrack_save_progress',
+                        args: {
+                            cmid: cmid,
+                            percent: floorPercent
+                        }
+                    }]);
                 }
             };
 
@@ -39,7 +58,7 @@ define(['jquery', 'core/config'], function($, cfg) {
                         $('#vt-success-msg').removeClass('d-none').hide().fadeIn('slow');
                     }
 
-                    // Enviar progreso al servidor cada 5% de incremento o al llegar al 100%
+                    // Send progress to server every 5% increment or when reaching 100%.
                     var floorPercent = Math.floor(highestPercent);
                     if (floorPercent >= 100 || (floorPercent - lastSavedPercent >= 5)) {
                         saveProgress(floorPercent);
@@ -99,12 +118,12 @@ define(['jquery', 'core/config'], function($, cfg) {
                         }
                     });
 
-                    // Guardar progreso al pausar
+                    // Save progress on pause.
                     video.addEventListener('pause', function() {
                         saveProgress(highestPercent);
                     });
 
-                    // Garantizar 100% y guardar al terminar el video
+                    // Ensure 100% and save when video ends.
                     video.addEventListener('ended', function() {
                         updateUI(100);
                         saveProgress(100);
@@ -137,9 +156,9 @@ define(['jquery', 'core/config'], function($, cfg) {
                 }
 
                 /**
-                 * Callback para cuando el estado del reproductor cambia.
+                 * Callback for when player state changes.
                  *
-                 * @param {Object} event Evento de YT.
+                 * @param {Object} event YT event.
                  */
                 var onPlayerStateChange = function(event) {
                     var duration = window.ytPlayer.getDuration();
@@ -180,13 +199,13 @@ define(['jquery', 'core/config'], function($, cfg) {
                         if (window.vtCheckTimer) {
                             clearInterval(window.vtCheckTimer);
                         }
-                        // Guardar progreso al pausar
+                        // Save progress on pause.
                         if (event.data == YT.PlayerState.PAUSED) {
                             saveProgress(highestPercent);
                         }
                     }
 
-                    // Garantizar 100% y guardar al terminar el video de YouTube
+                    // Ensure 100% and save when YouTube video ends.
                     if (event.data == YT.PlayerState.ENDED || event.data === 0) {
                         updateUI(100);
                         saveProgress(100);

@@ -29,33 +29,34 @@ require_once($CFG->libdir . '/enrollib.php');
 
 $id = required_param('id', PARAM_INT); // CM ID.
 
-// 1. Obtener datos de la instancia y del curso
+// 1. Get instance and course data.
 $cm = get_coursemodule_from_id('videotrack', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
 $videotrack = $DB->get_record('videotrack', ['id' => $cm->instance], '*', MUST_EXIST);
 
-// 2. Control de accesos seguro (Solo profesores o administradores del curso)
+// 2. Secure access control (Course teachers or admins only).
 require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
+require_capability('mod/videotrack:view', $context);
 require_capability('moodle/course:manageactivities', $context);
 
-// 3. Configurar la página de Moodle con soporte de pestañas de curso
+// 3. Configure the Moodle page with course tabs support.
 $PAGE->set_url('/mod/videotrack/report.php', ['id' => $cm->id]);
 $PAGE->set_title(get_string('report', 'mod_videotrack'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('incourse');
 
-// Mantener activa la pestaña del reporte.
+// Keep the report tab active.
 $PAGE->navbar->add(get_string('report', 'mod_videotrack'));
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(format_string($videotrack->name) . ' - ' . get_string('report', 'mod_videotrack'));
 
-// 4. Buscar estudiantes matriculados en el curso con permiso de ver la actividad
+// 4. Find enrolled students in the course with permission to view the activity.
 $users = get_enrolled_users($context, 'mod/videotrack:view', 0, 'u.id, u.firstname, u.lastname, u.email, u.picture, u.imagealt');
 
-// Filtrar para excluir usuarios con capacidad de gestionar la actividad (profesores, administradores).
+// Filter to exclude users with capacity to manage the activity (teachers, admins).
 foreach ($users as $key => $user) {
     if (has_capability('moodle/course:manageactivities', $context, $user->id)) {
         unset($users[$key]);
@@ -65,7 +66,7 @@ foreach ($users as $key => $user) {
 if (empty($users)) {
     echo $OUTPUT->notification(get_string('noresponses', 'mod_videotrack'), 'info');
 } else {
-    // Crear tabla nativa de Moodle con estilos Bootstrap.
+    // Create Moodle native table with Bootstrap styles.
     $table = new html_table();
     $table->head = [
         get_string('student', 'mod_videotrack'),
@@ -75,22 +76,22 @@ if (empty($users)) {
     ];
     $table->attributes['class'] = 'generaltable mod_videotrack_report table-hover';
 
+    // Fetch all progress records for this activity at once to prevent DB queries inside the loop.
+    $allprogress = $DB->get_records('videotrack_progress', ['videotrackid' => $videotrack->id], '', 'userid, id, highestpercent, iscompleted, timemodified');
+
     foreach ($users as $user) {
-        // Obtener el registro de progreso del usuario para esta actividad.
-        $progress = $DB->get_record('videotrack_progress', [
-            'videotrackid' => $videotrack->id,
-            'userid' => $user->id,
-        ]);
+        // Get the progress record for this user.
+        $progress = $allprogress[$user->id] ?? null;
 
         $fullname = fullname($user);
         $userpicture = $OUTPUT->user_picture($user, ['size' => 35]);
 
-        // Celda del estudiante con avatar y nombre.
+        // Student cell with avatar and name.
         $studentcell = html_writer::div($userpicture . ' ' . html_writer::span($fullname, 'ml-2'), 'd-flex align-items-center');
 
         $percent = $progress ? (int)$progress->highestpercent : 0;
 
-        // Renderizar barra de progreso con clases bootstrap nativas.
+        // Render progress bar using native bootstrap classes.
         $progressbar = '
         <div class="d-flex align-items-center" style="min-width: 200px;">
             <div class="progress w-100 mr-2" style="height: 16px; border-radius: 8px; background-color: #e9ecef;">
@@ -102,7 +103,7 @@ if (empty($users)) {
             <span class="font-weight-bold">' . $percent . '%</span>
         </div>';
 
-        // Estado de completado con iconos oficiales.
+        // Completion status with official icons.
         if ($progress && $progress->iscompleted) {
             $completedcell = html_writer::span(
                 '<i class="fa fa-check-circle text-success mr-1"></i> ' . get_string('yes'),
@@ -112,7 +113,7 @@ if (empty($users)) {
             $completedcell = html_writer::span('<i class="fa fa-circle-o text-muted mr-1"></i> ' . get_string('no'), 'text-muted');
         }
 
-        // Fecha de último acceso formateada.
+        // Formatted last access date.
         $lastaccesscell = '-';
         if ($progress && $progress->timemodified) {
             $lastaccesscell = userdate($progress->timemodified, get_string('strftimedatetime', 'langconfig'));

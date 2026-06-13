@@ -39,7 +39,7 @@ function videotrack_add_instance($videotrack, $mform = null) {
     $id = $DB->insert_record('videotrack', $videotrack);
 
     if (isset($videotrack->video)) {
-        // En add_instance $videotrack->coursemodule es el ID del cm recién creado.
+        // In add_instance $videotrack->coursemodule is the ID of the newly created cm.
         $context = context_module::instance($videotrack->coursemodule);
         file_save_draft_area_files(
             $videotrack->video,
@@ -184,7 +184,7 @@ function videotrack_extend_settings_navigation(settings_navigation $settingsnav,
     global $PAGE;
     $cm = $PAGE->cm;
 
-    // Si no hay información del módulo de curso o no existe el nodo principal, salimos.
+    // If there is no course module information or the main node does not exist, exit.
     if (!$cm || !$node) {
         return;
     }
@@ -193,7 +193,7 @@ function videotrack_extend_settings_navigation(settings_navigation $settingsnav,
     if (has_capability('moodle/course:manageactivities', $context)) {
         $url = new moodle_url('/mod/videotrack/report.php', ['id' => $cm->id]);
 
-        // Agregamos el reporte directamente al nodo de la actividad.
+        // Add the report node directly to the activity node.
         $reportnode = $node->add(
             get_string('report', 'mod_videotrack'),
             $url,

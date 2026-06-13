@@ -15,18 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * VideoTrack (mod_videotrack)
+ * Web service definitions for mod_videotrack.
  *
- * @package     mod_videotrack
- * @copyright   2026 Yeison Díaz
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    mod_videotrack
+ * @copyright  2026 Yeison Díaz
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'mod_videotrack';
-$plugin->version   = 2026061300;
-$plugin->requires  = 2022041900;
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.0.1';
+$functions = [
+    'mod_videotrack_save_progress' => [
+        'classname'     => 'mod_videotrack\external\save_progress',
+        'methodname'    => 'execute',
+        'description'   => 'Saves the video progress of a user.',
+        'type'          => 'write',
+        'ajax'          => true,
+        'loginrequired' => true,
+    ],
+];

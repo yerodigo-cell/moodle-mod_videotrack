@@ -34,13 +34,14 @@ $videotrack = $DB->get_record('videotrack', ['id' => $cm->instance], '*', MUST_E
 
 require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
+require_capability('mod/videotrack:view', $context);
 
 $PAGE->set_url('/mod/videotrack/view.php', ['id' => $cm->id]);
 $PAGE->set_title(format_string($videotrack->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
-// Disparar evento de Moodle course_module_viewed para reportes y plugins externos (ej. Level Up XP).
+// Trigger Moodle course_module_viewed event for reports and external plugins (e.g. Level Up XP).
 $event = \mod_videotrack\event\course_module_viewed::create([
     'objectid' => $videotrack->id,
     'context' => $context,
@@ -54,7 +55,7 @@ $event->add_record_snapshot('course_modules', $cm);
 $event->add_record_snapshot('videotrack', $videotrack);
 $event->trigger();
 
-// 3. Process video URL and check if it is a YouTube video (including Shorts).
+// Process video URL and check if it is a YouTube video (including Shorts).
 $videourl = trim($videotrack->videourl ?? '');
 $videourl = html_entity_decode($videourl);
 $isyoutube = false;
@@ -67,7 +68,7 @@ if (!empty($videourl)) {
         $path = $parsed['path'] ?? '';
         $query = $parsed['query'] ?? '';
 
-        // Método 1: Estándar (watch?v=ID).
+        // Method 1: Standard (watch?v=ID).
         if ($query) {
             parse_str($query, $params);
             if (isset($params['v'])) {
@@ -75,7 +76,7 @@ if (!empty($videourl)) {
             }
         }
 
-        // Método 2: Shorts, Embed o Live (youtube.com/shorts/ID).
+        // Method 2: Shorts, Embed or Live (youtube.com/shorts/ID).
         if (empty($ytid) && !empty($path)) {
             $pathparts = explode('/', trim($path, '/'));
             foreach ($pathparts as $index => $part) {
@@ -88,12 +89,12 @@ if (!empty($videourl)) {
             }
         }
 
-        // Método 3: Enlace corto (youtu.be/ID).
+        // Method 3: Short link (youtu.be/ID).
         if (empty($ytid) && stripos($videourl, 'youtu.be') !== false) {
             $ytid = trim($path, '/');
         }
 
-        // Limpiar el ID eliminando parámetros de consulta (?si=..., etc.).
+        // Clean the ID by removing query parameters (?si=..., etc.).
         if (!empty($ytid)) {
             $ytid = explode('?', $ytid)[0];
             $ytid = explode('&', $ytid)[0];
@@ -126,7 +127,7 @@ if (empty($videourl) || (!$isyoutube && strpos($videourl, 'http') === false)) {
     }
 }
 
-// 4. Buscar el progreso actual
+// Search for current progress.
 $progress = $DB->get_record('videotrack_progress', ['videotrackid' => $videotrack->id, 'userid' => $USER->id]);
 $currentpercent = $progress ? (int)$progress->highestpercent : 0;
 $iscompleted = $progress ? (bool)$progress->iscompleted : false;
