@@ -70,18 +70,45 @@ define(['jquery', 'core/ajax'], function($, ajax) {
             };
 
             var setupResumeButton = function(getDurationFn, playFn) {
-                var $resumeBtn = $('#vt-resume-btn');
-                if ($resumeBtn.length) {
-                    $resumeBtn.off('click').on('click', function(e) {
-                        e.preventDefault();
-                        var duration = getDurationFn();
-                        if (duration && duration > 0) {
-                            var resumeTime = (highestPercent / 100) * duration;
-                            playFn(resumeTime);
-                            $resumeBtn.fadeOut();
+                $(document).off('click', '#vt-resume-btn');
+                $(document).on('click', '#vt-resume-btn', function(e) {
+                    e.preventDefault();
+                    var $resumeBtn = $(this);
+                    var duration = getDurationFn();
+                    
+                    var executeResume = function(dur) {
+                        var resumeTime = (highestPercent / 100) * dur;
+                        playFn(resumeTime);
+                        $resumeBtn.fadeOut();
+                    };
+
+                    if (duration && duration > 0 && !isNaN(duration)) {
+                        executeResume(duration);
+                    } else {
+                        // For HTML5, load first
+                        if (!isYouTube) {
+                            var v = document.getElementById('videotrack-player');
+                            if (v) {
+                                v.addEventListener('loadedmetadata', function() {
+                                    executeResume(v.duration);
+                                }, {once: true});
+                                v.preload = "metadata";
+                                v.load();
+                            }
+                        } else {
+                            if (window.ytPlayer && window.ytPlayer.playVideo) {
+                                window.ytPlayer.playVideo();
+                                var ytInterval = setInterval(function() {
+                                    var ytDur = window.ytPlayer.getDuration();
+                                    if (ytDur && ytDur > 0) {
+                                        clearInterval(ytInterval);
+                                        executeResume(ytDur);
+                                    }
+                                }, 200);
+                            }
                         }
-                    });
-                }
+                    }
+                });
             };
 
             if (!isYouTube) {
@@ -89,7 +116,18 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                 if (video) {
                     setupResumeButton(
                         function() { return video.duration; },
-                        function(time) { video.currentTime = time; video.play(); }
+                        function(time) { 
+                            if (video.readyState >= 1) {
+                                video.currentTime = time; 
+                                video.play(); 
+                            } else {
+                                video.addEventListener('loadedmetadata', function() {
+                                    video.currentTime = time;
+                                    video.play();
+                                }, {once: true});
+                                video.load();
+                            }
+                        }
                     );
 
                     video.addEventListener('play', function() {
