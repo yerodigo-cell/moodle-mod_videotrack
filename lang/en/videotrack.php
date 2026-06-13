@@ -26,6 +26,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['completed'] = 'Completed';
+$string['resumebutton'] = 'Resume from {$a}%';
 $string['error_nouploadorurl'] = 'You must either provide a Video URL or upload a Video File.';
 $string['eventcoursemoduleviewed'] = 'VideoTrack course module viewed';
 $string['highestpercent'] = 'Highest Percent Watched';
