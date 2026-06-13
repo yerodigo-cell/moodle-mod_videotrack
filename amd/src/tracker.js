@@ -69,9 +69,41 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                 }
             };
 
+            var setupResumeButton = function(getDurationFn, playFn) {
+                var $resumeBtn = $('#vt-resume-btn');
+                if (highestPercent > 0 && highestPercent < 100 && $resumeBtn.length) {
+                    $resumeBtn.removeClass('d-none');
+                    $resumeBtn.off('click').on('click', function() {
+                        var duration = getDurationFn();
+                        if (duration && duration > 0) {
+                            var resumeTime = (highestPercent / 100) * duration;
+                            playFn(resumeTime);
+                            $resumeBtn.fadeOut();
+                        }
+                    });
+                }
+            };
+
             if (!isYouTube) {
                 var video = document.getElementById('videotrack-player');
                 if (video) {
+                    var initHTML5Resume = function() {
+                        setupResumeButton(
+                            function() { return video.duration; },
+                            function(time) { video.currentTime = time; video.play(); }
+                        );
+                    };
+
+                    if (video.readyState >= 1) {
+                        initHTML5Resume();
+                    } else {
+                        video.addEventListener('loadedmetadata', initHTML5Resume);
+                    }
+
+                    video.addEventListener('play', function() {
+                        $('#vt-resume-btn').fadeOut();
+                    });
+
                     video.addEventListener('seeking', function() {
                         if (isFreeNavigation) {
                             return;
@@ -141,6 +173,12 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                             'rel': 0
                         },
                         events: {
+                            'onReady': function() {
+                                setupResumeButton(
+                                    function() { return window.ytPlayer.getDuration(); },
+                                    function(time) { window.ytPlayer.seekTo(time, true); window.ytPlayer.playVideo(); }
+                                );
+                            },
                             'onStateChange': onPlayerStateChange
                         }
                     });
@@ -181,6 +219,7 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                     }
 
                     if (event.data == YT.PlayerState.PLAYING) {
+                        $('#vt-resume-btn').fadeOut();
                         if (window.vtCheckTimer) {
                             clearInterval(window.vtCheckTimer);
                         }

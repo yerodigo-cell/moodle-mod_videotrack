@@ -157,6 +157,7 @@ $templatecontext = [
         ? get_string('progressfree', 'mod_videotrack')
         : get_string('progresshint', 'mod_videotrack', $videotrack->targetpercent),
     'successmsg' => get_string('successmsg', 'mod_videotrack'),
+    'resumebtntext' => get_string('resumebutton', 'mod_videotrack', $currentpercent),
 ];
 
 $PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
