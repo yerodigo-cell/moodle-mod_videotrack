@@ -31,6 +31,9 @@ use external_single_structure;
 
 defined('MOODLE_INTERNAL') || die();
 
+global $CFG;
+require_once($CFG->libdir . '/externallib.php');
+
 /**
  * Save progress external API.
  */

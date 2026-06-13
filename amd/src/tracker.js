@@ -42,7 +42,10 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                             cmid: cmid,
                             percent: floorPercent
                         }
-                    }]);
+                    }])[0].fail(function(ex) {
+                        console.error('VideoTrack AJAX Error:', ex);
+                        alert('Error saving progress: ' + ex.message);
+                    });
                 }
             };
 
