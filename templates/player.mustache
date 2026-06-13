@@ -58,10 +58,13 @@
         <div id="vt-success-msg" class="alert alert-success mt-3 {{^iscompleted}}d-none{{/iscompleted}}" style="border-left: 5px solid #28a745;">
             <i class="fa fa-check-circle mr-1"></i> {{ successmsg }}
         </div>
-        
         <!-- Botón de reanudar -->
-        <button id="vt-resume-btn" class="btn btn-outline-primary mt-3 d-none">
+        {{#currentpercent}}
+        {{^iscompleted}}
+        <button id="vt-resume-btn" class="btn btn-outline-primary mt-3">
             <i class="fa fa-play mr-1"></i> {{ resumebtntext }}
         </button>
+        {{/iscompleted}}
+        {{/currentpercent}}
     </div>
 </div>

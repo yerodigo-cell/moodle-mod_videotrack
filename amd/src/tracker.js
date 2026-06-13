@@ -71,8 +71,7 @@ define(['jquery', 'core/ajax'], function($, ajax) {
 
             var setupResumeButton = function(getDurationFn, playFn) {
                 var $resumeBtn = $('#vt-resume-btn');
-                if (highestPercent > 0 && highestPercent < 100 && $resumeBtn.length) {
-                    $resumeBtn.removeClass('d-none');
+                if ($resumeBtn.length) {
                     $resumeBtn.off('click').on('click', function() {
                         var duration = getDurationFn();
                         if (duration && duration > 0) {
