@@ -27,7 +27,7 @@
 }}
 <div class="videotrack-container p-3 mb-4 bg-white rounded border shadow-sm">
     
-    <!-- Botón de reanudar (Arriba) -->
+    <!-- Resume button (Top) -->
     {{#showresumebutton}}
     <div class="mb-3">
         <button id="vt-resume-btn" class="btn btn-primary font-weight-bold shadow-sm" style="border-radius: 20px; padding: 8px 20px;">
@@ -37,14 +37,14 @@
     {{/showresumebutton}}
 
     {{#isyoutube}}
-        <!-- Reproductor de YouTube -->
+        <!-- YouTube Player -->
         <div class="embed-responsive embed-responsive-16by9" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">
             <div id="youtube-player" data-videoid="{{ytid}}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
         </div>
     {{/isyoutube}}
     
     {{^isyoutube}}
-        <!-- Reproductor nativo HTML5 (Archivos locales / MP4 directo) -->
+        <!-- Native HTML5 Player (Local files / Direct MP4) -->
         <div style="border-radius: 8px; overflow: hidden; background: #000; text-align: center;">
             <video id="videotrack-player" controls style="width: 100%; max-height: 650px;">
                 <source src="{{videourl}}" type="video/mp4">
@@ -53,7 +53,7 @@
         </div>
     {{/isyoutube}}
 
-    <!-- Interfaz de Progreso -->
+    <!-- Progress Interface -->
     <div class="mt-4 px-2">
         <h4 class="h5 font-weight-bold">{{ progresstitle }}</h4>
         <div class="progress mt-2" style="height: 25px; border-radius: 12px; background-color: #e9ecef;">
@@ -63,7 +63,7 @@
         </div>
         <p class="mt-2 text-muted small">{{{ progresshint }}}</p>
         
-        <!-- Mensaje de éxito -->
+        <!-- Success message -->
         <div id="vt-success-msg" class="alert alert-success mt-3 {{^iscompleted}}d-none{{/iscompleted}}" style="border-left: 5px solid #28a745;">
             <i class="fa fa-check-circle mr-1"></i> {{ successmsg }}
         </div>
@@ -111,7 +111,7 @@ require(['jquery'], function($) {
         }
     });
 
-    // Ocultar botón si el video se reproduce manualmente
+    // Hide button if the video is played manually
     var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};
     if (!isYouTube) {
         var video = document.getElementById('videotrack-player');
@@ -121,8 +121,8 @@ require(['jquery'], function($) {
             });
         }
     } else {
-        // En youtube dependemos del event listener global, pero podemos añadir un polling si queremos,
-        // aunque ytPlayer.playVideo lo ocultará indirectamente, así que no es estrictamente necesario aquí.
+        // On YouTube we rely on the global event listener.
+        // ytPlayer.playVideo will hide it indirectly, so polling is not strictly necessary here.
     }
 });
 {{/js}}

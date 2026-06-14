@@ -42,10 +42,10 @@ class mod_videotrack_mod_form extends moodleform_mod {
         $mform = $this->_form;
 
         $mform->addElement('header', 'general', get_string('general', 'form'));
-        $mform->addElement('text', 'name', get_string('name'), ['size' => '64']);
+        $mform->addElement('text', 'name', get_string('name', 'moodle'), ['size' => '64']);
         $mform->setType('name', PARAM_TEXT);
         $mform->addRule('name', null, 'required', null, 'client');
-        $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
+        $mform->addRule('name', get_string('maximumchars', 'moodle', 255), 'maxlength', 255, 'client');
 
         $this->standard_intro_elements();
 

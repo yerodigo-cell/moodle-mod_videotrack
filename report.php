@@ -37,8 +37,7 @@ $videotrack = $DB->get_record('videotrack', ['id' => $cm->instance], '*', MUST_E
 // 2. Secure access control (Course teachers or admins only).
 require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
-require_capability('mod/videotrack:view', $context);
-require_capability('moodle/course:manageactivities', $context);
+require_capability('mod/videotrack:viewreport', $context);
 
 // 3. Configure the Moodle page with course tabs support.
 $PAGE->set_url('/mod/videotrack/report.php', ['id' => $cm->id]);
@@ -106,11 +105,11 @@ if (empty($users)) {
         // Completion status with official icons.
         if ($progress && $progress->iscompleted) {
             $completedcell = html_writer::span(
-                '<i class="fa fa-check-circle text-success mr-1"></i> ' . get_string('yes'),
+                '<i class="fa fa-check-circle text-success mr-1"></i> ' . get_string('yes', 'moodle'),
                 'text-success font-weight-bold'
             );
         } else {
-            $completedcell = html_writer::span('<i class="fa fa-circle-o text-muted mr-1"></i> ' . get_string('no'), 'text-muted');
+            $completedcell = html_writer::span('<i class="fa fa-circle-o text-muted mr-1"></i> ' . get_string('no', 'moodle'), 'text-muted');
         }
 
         // Formatted last access date.

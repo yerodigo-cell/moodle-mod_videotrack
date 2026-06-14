@@ -56,7 +56,7 @@ $videotracks = $DB->get_records('videotrack', ['course' => $course->id]);
 
 $table = new html_table();
 $table->head = [
-    get_string('name'),
+    get_string('name', 'moodle'),
     get_string('targetpercent', 'mod_videotrack'),
     get_string('report', 'mod_videotrack'),
 ];
