@@ -31,7 +31,7 @@
     {{#currentpercent}}
     {{^iscompleted}}
     <div class="mb-3">
-        <button id="vt-resume-btn" class="btn btn-primary font-weight-bold shadow-sm" style="border-radius: 20px; padding: 8px 20px;">
+        <button id="vt-resume-btn" class="btn btn-primary font-weight-bold shadow-sm" style="border-radius: 20px; padding: 8px 20px;" onclick="if(window.resumeVideotrack) window.resumeVideotrack();">
             <i class="fa fa-play mr-2"></i> {{ resumebtntext }}
         </button>
     </div>

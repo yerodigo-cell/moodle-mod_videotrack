@@ -69,79 +69,43 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                 }
             };
 
-            var setupResumeButton = function(getDurationFn, playFn) {
-                // Polling approach to attach the event, bypassing any DOM load timing issues
-                var attachInterval = setInterval(function() {
-                    var resumeBtn = document.getElementById('vt-resume-btn');
-                    if (resumeBtn) {
-                        clearInterval(attachInterval);
-                        
-                        // Prevent duplicate attachments by adding a class flag
-                        if (resumeBtn.classList.contains('vt-event-attached')) {
-                            return;
-                        }
-                        resumeBtn.classList.add('vt-event-attached');
+            window.resumeVideotrack = function() {
+                var btn = document.getElementById('vt-resume-btn');
+                if (btn) btn.style.display = 'none';
 
-                        resumeBtn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            
-                            var duration = getDurationFn();
-                            
-                            var executeResume = function(dur) {
-                                var resumeTime = (highestPercent / 100) * dur;
-                                playFn(resumeTime);
-                                resumeBtn.style.display = 'none';
-                            };
-
-                            if (duration && duration > 0 && !isNaN(duration)) {
-                                executeResume(duration);
-                            } else {
-                                if (!isYouTube) {
-                                    var v = document.getElementById('videotrack-player');
-                                    if (v) {
-                                        v.addEventListener('loadedmetadata', function() {
-                                            executeResume(v.duration);
-                                        }, {once: true});
-                                        v.preload = "metadata";
-                                        v.load();
-                                    }
-                                } else {
-                                    if (window.ytPlayer && window.ytPlayer.playVideo) {
-                                        window.ytPlayer.playVideo();
-                                        var ytInterval = setInterval(function() {
-                                            var ytDur = window.ytPlayer.getDuration();
-                                            if (ytDur && ytDur > 0) {
-                                                clearInterval(ytInterval);
-                                                executeResume(ytDur);
-                                            }
-                                        }, 200);
-                                    }
-                                }
-                            }
-                        });
+                if (!isYouTube) {
+                    var video = document.getElementById('videotrack-player');
+                    if (!video) return;
+                    
+                    var dur = video.duration;
+                    if (!dur || isNaN(dur)) {
+                        video.addEventListener('loadedmetadata', function() {
+                            video.currentTime = (highestPercent / 100) * video.duration;
+                            video.play();
+                        }, {once: true});
+                        video.preload = "metadata";
+                        video.load();
+                    } else {
+                        video.currentTime = (highestPercent / 100) * dur;
+                        video.play();
                     }
-                }, 500);
+                } else {
+                    if (window.ytPlayer && window.ytPlayer.playVideo) {
+                        window.ytPlayer.playVideo();
+                        var checkInterval = setInterval(function() {
+                            var dur = window.ytPlayer.getDuration();
+                            if (dur && dur > 0) {
+                                clearInterval(checkInterval);
+                                window.ytPlayer.seekTo((highestPercent / 100) * dur, true);
+                            }
+                        }, 200);
+                    }
+                }
             };
 
             if (!isYouTube) {
                 var video = document.getElementById('videotrack-player');
                 if (video) {
-                    setupResumeButton(
-                        function() { return video.duration; },
-                        function(time) { 
-                            if (video.readyState >= 1) {
-                                video.currentTime = time; 
-                                video.play(); 
-                            } else {
-                                video.addEventListener('loadedmetadata', function() {
-                                    video.currentTime = time;
-                                    video.play();
-                                }, {once: true});
-                                video.load();
-                            }
-                        }
-                    );
-
                     video.addEventListener('play', function() {
                         var rb = document.getElementById('vt-resume-btn');
                         if (rb) { rb.style.display = 'none'; }
@@ -219,11 +183,6 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                             'onStateChange': onPlayerStateChange
                         }
                     });
-
-                    setupResumeButton(
-                        function() { return (window.ytPlayer && window.ytPlayer.getDuration) ? window.ytPlayer.getDuration() : 0; },
-                        function(time) { if (window.ytPlayer) { window.ytPlayer.seekTo(time, true); window.ytPlayer.playVideo(); } }
-                    );
                 };
 
                 if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined') {
