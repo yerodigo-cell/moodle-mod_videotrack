@@ -69,39 +69,46 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                 }
             };
 
-            window.resumeVideotrack = function() {
-                var btn = document.getElementById('vt-resume-btn');
-                if (btn) btn.style.display = 'none';
+            var resumeBtn = document.getElementById('vt-resume-btn');
+            if (resumeBtn) {
+                // Ensure no duplicate handlers if init runs twice
+                var newBtn = resumeBtn.cloneNode(true);
+                resumeBtn.parentNode.replaceChild(newBtn, resumeBtn);
+                resumeBtn = newBtn;
+                
+                resumeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    this.style.display = 'none';
 
-                if (!isYouTube) {
-                    var video = document.getElementById('videotrack-player');
-                    if (!video) return;
-                    
-                    var dur = video.duration;
-                    if (!dur || isNaN(dur)) {
-                        video.addEventListener('loadedmetadata', function() {
+                    if (!isYouTube) {
+                        var video = document.getElementById('videotrack-player');
+                        if (!video) return;
+                        
+                        var doHTML5Resume = function() {
                             video.currentTime = (highestPercent / 100) * video.duration;
                             video.play();
-                        }, {once: true});
-                        video.preload = "metadata";
-                        video.load();
+                        };
+
+                        if (video.readyState >= 1) {
+                            doHTML5Resume();
+                        } else {
+                            video.addEventListener('loadedmetadata', doHTML5Resume, {once: true});
+                            video.load();
+                        }
                     } else {
-                        video.currentTime = (highestPercent / 100) * dur;
-                        video.play();
+                        if (window.ytPlayer && window.ytPlayer.playVideo) {
+                            window.ytPlayer.playVideo();
+                            var checkInterval = setInterval(function() {
+                                var dur = window.ytPlayer.getDuration();
+                                if (dur && dur > 0) {
+                                    clearInterval(checkInterval);
+                                    window.ytPlayer.seekTo((highestPercent / 100) * dur, true);
+                                }
+                            }, 200);
+                        }
                     }
-                } else {
-                    if (window.ytPlayer && window.ytPlayer.playVideo) {
-                        window.ytPlayer.playVideo();
-                        var checkInterval = setInterval(function() {
-                            var dur = window.ytPlayer.getDuration();
-                            if (dur && dur > 0) {
-                                clearInterval(checkInterval);
-                                window.ytPlayer.seekTo((highestPercent / 100) * dur, true);
-                            }
-                        }, 200);
-                    }
-                }
-            };
+                });
+            }
 
             if (!isYouTube) {
                 var video = document.getElementById('videotrack-player');
