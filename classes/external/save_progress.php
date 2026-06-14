@@ -70,8 +70,7 @@ class save_progress extends external_api {
         $percent = $params['percent'];
 
         $cm = get_coursemodule_from_id('videotrack', $cmid, 0, false, MUST_EXIST);
-        $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
-        $videotrack = $DB->get_record('videotrack', ['id' => $cm->instance], '*', MUST_EXIST);
+        $videotrack = $DB->get_record('videotrack', ['id' => $cm->instance], 'id, targetpercent', MUST_EXIST);
 
         $context = \context_module::instance($cm->id);
 
