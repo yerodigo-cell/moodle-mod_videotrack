@@ -69,55 +69,10 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                 }
             };
 
-            var resumeBtn = document.getElementById('vt-resume-btn');
-            if (resumeBtn) {
-                // Ensure no duplicate handlers if init runs twice
-                var newBtn = resumeBtn.cloneNode(true);
-                resumeBtn.parentNode.replaceChild(newBtn, resumeBtn);
-                resumeBtn = newBtn;
-                
-                resumeBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    this.style.display = 'none';
-
-                    if (!isYouTube) {
-                        var video = document.getElementById('videotrack-player');
-                        if (!video) return;
-                        
-                        var doHTML5Resume = function() {
-                            video.currentTime = (highestPercent / 100) * video.duration;
-                            video.play();
-                        };
-
-                        if (video.readyState >= 1) {
-                            doHTML5Resume();
-                        } else {
-                            video.addEventListener('loadedmetadata', doHTML5Resume, {once: true});
-                            video.load();
-                        }
-                    } else {
-                        if (window.ytPlayer && window.ytPlayer.playVideo) {
-                            window.ytPlayer.playVideo();
-                            var checkInterval = setInterval(function() {
-                                var dur = window.ytPlayer.getDuration();
-                                if (dur && dur > 0) {
-                                    clearInterval(checkInterval);
-                                    window.ytPlayer.seekTo((highestPercent / 100) * dur, true);
-                                }
-                            }, 200);
-                        }
-                    }
-                });
-            }
 
             if (!isYouTube) {
                 var video = document.getElementById('videotrack-player');
                 if (video) {
-                    video.addEventListener('play', function() {
-                        var rb = document.getElementById('vt-resume-btn');
-                        if (rb) { rb.style.display = 'none'; }
-                    });
-
                     video.addEventListener('seeking', function() {
                         if (isFreeNavigation) {
                             return;
@@ -227,7 +182,6 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                     }
 
                     if (event.data == YT.PlayerState.PLAYING) {
-                        $('#vt-resume-btn').fadeOut();
                         if (window.vtCheckTimer) {
                             clearInterval(window.vtCheckTimer);
                         }
