@@ -152,8 +152,10 @@ $templatecontext = [
     'currentpercent' => $currentpercent,
     'iscompleted' => $iscompleted,
     'isfree' => $isfree,
+    'notfullywatched' => ($currentpercent < 100),
     'progresstitle' => get_string('progresstitle', 'mod_videotrack'),
-    'progresshint' => $isfree
+    'progressfree'  => $videotrack->free_navigation,
+    'progresshint'  => $videotrack->free_navigation 
         ? get_string('progressfree', 'mod_videotrack')
         : get_string('progresshint', 'mod_videotrack', $videotrack->targetpercent),
     'successmsg' => get_string('successmsg', 'mod_videotrack'),
