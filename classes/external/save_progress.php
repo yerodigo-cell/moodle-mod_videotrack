@@ -38,7 +38,6 @@ require_once($CFG->libdir . '/externallib.php');
  * Save progress external API.
  */
 class save_progress extends external_api {
-
     /**
      * Returns description of method parameters
      *
@@ -47,7 +46,7 @@ class save_progress extends external_api {
     public static function execute_parameters() {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'The course module ID.'),
-            'percent' => new external_value(PARAM_INT, 'The progress percentage achieved.')
+            'percent' => new external_value(PARAM_INT, 'The progress percentage achieved.'),
         ]);
     }
 
@@ -63,7 +62,7 @@ class save_progress extends external_api {
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'cmid' => $cmid,
-            'percent' => $percent
+            'percent' => $percent,
         ]);
 
         $cmid = $params['cmid'];
@@ -118,7 +117,7 @@ class save_progress extends external_api {
      */
     public static function execute_returns() {
         return new external_single_structure([
-            'success' => new external_value(PARAM_BOOL, 'True if successful.')
+            'success' => new external_value(PARAM_BOOL, 'True if successful.'),
         ]);
     }
 }
