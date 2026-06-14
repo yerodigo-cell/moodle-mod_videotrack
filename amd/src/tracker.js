@@ -70,45 +70,57 @@ define(['jquery', 'core/ajax'], function($, ajax) {
             };
 
             var setupResumeButton = function(getDurationFn, playFn) {
-                $(document).off('click', '#vt-resume-btn');
-                $(document).on('click', '#vt-resume-btn', function(e) {
-                    e.preventDefault();
-                    var $resumeBtn = $(this);
-                    var duration = getDurationFn();
-                    
-                    var executeResume = function(dur) {
-                        var resumeTime = (highestPercent / 100) * dur;
-                        playFn(resumeTime);
-                        $resumeBtn.fadeOut();
-                    };
-
-                    if (duration && duration > 0 && !isNaN(duration)) {
-                        executeResume(duration);
-                    } else {
-                        // For HTML5, load first
-                        if (!isYouTube) {
-                            var v = document.getElementById('videotrack-player');
-                            if (v) {
-                                v.addEventListener('loadedmetadata', function() {
-                                    executeResume(v.duration);
-                                }, {once: true});
-                                v.preload = "metadata";
-                                v.load();
-                            }
-                        } else {
-                            if (window.ytPlayer && window.ytPlayer.playVideo) {
-                                window.ytPlayer.playVideo();
-                                var ytInterval = setInterval(function() {
-                                    var ytDur = window.ytPlayer.getDuration();
-                                    if (ytDur && ytDur > 0) {
-                                        clearInterval(ytInterval);
-                                        executeResume(ytDur);
-                                    }
-                                }, 200);
-                            }
+                // Polling approach to attach the event, bypassing any DOM load timing issues
+                var attachInterval = setInterval(function() {
+                    var resumeBtn = document.getElementById('vt-resume-btn');
+                    if (resumeBtn) {
+                        clearInterval(attachInterval);
+                        
+                        // Prevent duplicate attachments by adding a class flag
+                        if (resumeBtn.classList.contains('vt-event-attached')) {
+                            return;
                         }
+                        resumeBtn.classList.add('vt-event-attached');
+
+                        resumeBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            
+                            var duration = getDurationFn();
+                            
+                            var executeResume = function(dur) {
+                                var resumeTime = (highestPercent / 100) * dur;
+                                playFn(resumeTime);
+                                resumeBtn.style.display = 'none';
+                            };
+
+                            if (duration && duration > 0 && !isNaN(duration)) {
+                                executeResume(duration);
+                            } else {
+                                if (!isYouTube) {
+                                    var v = document.getElementById('videotrack-player');
+                                    if (v) {
+                                        v.addEventListener('loadedmetadata', function() {
+                                            executeResume(v.duration);
+                                        }, {once: true});
+                                        v.preload = "metadata";
+                                        v.load();
+                                    }
+                                } else {
+                                    if (window.ytPlayer && window.ytPlayer.playVideo) {
+                                        window.ytPlayer.playVideo();
+                                        var ytInterval = setInterval(function() {
+                                            var ytDur = window.ytPlayer.getDuration();
+                                            if (ytDur && ytDur > 0) {
+                                                clearInterval(ytInterval);
+                                                executeResume(ytDur);
+                                            }
+                                        }, 200);
+                                    }
+                                }
+                            }
+                        });
                     }
-                });
+                }, 500);
             };
 
             if (!isYouTube) {
@@ -131,7 +143,8 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                     );
 
                     video.addEventListener('play', function() {
-                        $('#vt-resume-btn').fadeOut();
+                        var rb = document.getElementById('vt-resume-btn');
+                        if (rb) { rb.style.display = 'none'; }
                     });
 
                     video.addEventListener('seeking', function() {
