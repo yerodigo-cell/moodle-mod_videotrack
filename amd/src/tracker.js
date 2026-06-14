@@ -21,7 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 /* global YT */
-define(['jquery', 'core/ajax'], function($, ajax) {
+define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notification) {
     return {
         init: function(cmid, targetPercent, isYouTube, videoId, currentPercent) {
             var highestPercent = currentPercent || 0;
@@ -42,10 +42,7 @@ define(['jquery', 'core/ajax'], function($, ajax) {
                             cmid: cmid,
                             percent: floorPercent
                         }
-                    }])[0].fail(function(ex) {
-                        console.error('VideoTrack AJAX Error:', ex);
-                        alert('Error saving progress: ' + ex.message);
-                    });
+                    }])[0].fail(notification.exception);
                 }
             };
 

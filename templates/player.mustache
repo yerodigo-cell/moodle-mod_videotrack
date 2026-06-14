@@ -76,12 +76,13 @@ require(['jquery'], function($) {
         e.preventDefault();
         var btn = $(this);
         var targetPercent = {{currentpercent}};
-        
         var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};
 
         if (!isYouTube) {
             var video = document.getElementById('videotrack-player');
-            if (!video) return;
+            if (!video) {
+                return;
+            }
 
             var doResume = function() {
                 var targetTime = (targetPercent / 100) * video.duration;

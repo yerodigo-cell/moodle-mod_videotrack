@@ -76,7 +76,12 @@ if (empty($users)) {
     $table->attributes['class'] = 'generaltable mod_videotrack_report table-hover';
 
     // Fetch all progress records for this activity at once to prevent DB queries inside the loop.
-    $allprogress = $DB->get_records('videotrack_progress', ['videotrackid' => $videotrack->id], '', 'userid, id, highestpercent, iscompleted, timemodified');
+    $allprogress = $DB->get_records(
+        'videotrack_progress',
+        ['videotrackid' => $videotrack->id],
+        '',
+        'userid, id, highestpercent, iscompleted, timemodified'
+    );
 
     foreach ($users as $user) {
         // Get the progress record for this user.
@@ -109,7 +114,10 @@ if (empty($users)) {
                 'text-success font-weight-bold'
             );
         } else {
-            $completedcell = html_writer::span('<i class="fa fa-circle-o text-muted mr-1"></i> ' . get_string('no', 'moodle'), 'text-muted');
+            $completedcell = html_writer::span(
+                '<i class="fa fa-circle-o text-muted mr-1"></i> ' . get_string('no', 'moodle'),
+                'text-muted'
+            );
         }
 
         // Formatted last access date.
