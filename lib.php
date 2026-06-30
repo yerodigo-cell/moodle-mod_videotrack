@@ -35,18 +35,19 @@ function videotrack_extract_heygen_url($url) {
         global $CFG;
         require_once($CFG->libdir . '/filelib.php');
         $curl = new curl();
-        $curl->setopt(array(
-            'CURLOPT_USERAGENT' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        $curl->setopt([
+            'CURLOPT_USERAGENT' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' .
+                                   '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'CURLOPT_TIMEOUT' => 10,
-        ));
+        ]);
         $content = $curl->get($url);
-        
-        // Search specifically for the public transcoded videos on resource2.heygen.ai
+
+        // Search specifically for the public transcoded videos on resource2.heygen.ai.
         if (preg_match_all('/https:\/\/resource2\.heygen\.ai[^"\'<>]+?\.mp4/i', $content, $matches)) {
             if (!empty($matches[0])) {
                 $extracted = $matches[0][0];
                 $extracted = str_replace('\u0026', '&', $extracted);
-                return $extracted; // Return the public .mp4 link found
+                return $extracted; // Return the public .mp4 link found.
             }
         }
     }

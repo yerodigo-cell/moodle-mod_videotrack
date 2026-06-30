@@ -36,15 +36,19 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
             var saveProgress = function(percent) {
                 var floorPercent = Math.floor(percent);
                 var currentTime = maxAllowedTime;
-                
+
                 if (isYouTube && window.ytPlayer && window.ytPlayer.getCurrentTime) {
                     var ytTime = window.ytPlayer.getCurrentTime();
-                    if (isFreeNavigation || ytTime > maxAllowedTime) currentTime = ytTime;
+                    if (isFreeNavigation || ytTime > maxAllowedTime) {
+                        currentTime = ytTime;
+                    }
                 } else {
                     var video = document.getElementById('videotrack-player');
                     if (video) {
                         var htmlTime = video.currentTime;
-                        if (isFreeNavigation || htmlTime > maxAllowedTime) currentTime = htmlTime;
+                        if (isFreeNavigation || htmlTime > maxAllowedTime) {
+                            currentTime = htmlTime;
+                        }
                     }
                 }
 

@@ -56,6 +56,7 @@ class save_progress extends external_api {
      *
      * @param int $cmid
      * @param int $percent
+     * @param int $currenttime
      * @return array
      */
     public static function execute($cmid, $percent, $currenttime = 0) {
@@ -95,7 +96,7 @@ class save_progress extends external_api {
                 $progress->highesttime = $currenttime;
                 $updated = true;
             }
-            
+
             if ($updated) {
                 $progress->iscompleted = $completed ? 1 : $progress->iscompleted;
                 $progress->timemodified = time();
