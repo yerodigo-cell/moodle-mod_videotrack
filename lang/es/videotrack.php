@@ -46,6 +46,7 @@ $string['progressfree'] = 'Este video es de exploración libre. Puedes visualiza
 $string['progresshint'] = 'Debes visualizar al menos el <strong>{$a}%</strong> del video para completar esta actividad.';
 $string['progresstitle'] = 'Progreso de visualización';
 $string['report'] = 'Reporte de progreso';
+$string['resumebutton'] = 'Reanudar desde {$a}';
 $string['student'] = 'Estudiante';
 $string['successmsg'] = '¡Felicidades! Has alcanzado el porcentaje requerido. Ya puedes continuar.';
 $string['targetpercent'] = 'Porcentaje requerido (%)';

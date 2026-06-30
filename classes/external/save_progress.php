@@ -47,6 +47,7 @@ class save_progress extends external_api {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'The course module ID.'),
             'percent' => new external_value(PARAM_INT, 'The progress percentage achieved.'),
+            'currenttime' => new external_value(PARAM_INT, 'The highest time in seconds reached.', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -57,16 +58,18 @@ class save_progress extends external_api {
      * @param int $percent
      * @return array
      */
-    public static function execute($cmid, $percent) {
+    public static function execute($cmid, $percent, $currenttime = 0) {
         global $DB, $USER, $CFG;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'cmid' => $cmid,
             'percent' => $percent,
+            'currenttime' => $currenttime,
         ]);
 
         $cmid = $params['cmid'];
         $percent = $params['percent'];
+        $currenttime = $params['currenttime'];
 
         $cm = get_coursemodule_from_id('videotrack', $cmid, 0, false, MUST_EXIST);
         $videotrack = $DB->get_record('videotrack', ['id' => $cm->instance], 'id, targetpercent', MUST_EXIST);
@@ -80,8 +83,20 @@ class save_progress extends external_api {
         $completed = ($percent >= $videotrack->targetpercent) ? 1 : 0;
 
         if ($progress) {
+            $updated = false;
             if ($percent > $progress->highestpercent) {
                 $progress->highestpercent = $percent;
+                $updated = true;
+            }
+            if (isset($progress->highesttime) && $currenttime > $progress->highesttime) {
+                $progress->highesttime = $currenttime;
+                $updated = true;
+            } else if (!isset($progress->highesttime) && $currenttime > 0) {
+                $progress->highesttime = $currenttime;
+                $updated = true;
+            }
+            
+            if ($updated) {
                 $progress->iscompleted = $completed ? 1 : $progress->iscompleted;
                 $progress->timemodified = time();
                 $DB->update_record('videotrack_progress', $progress);
@@ -91,6 +106,7 @@ class save_progress extends external_api {
             $progress->videotrackid = $videotrack->id;
             $progress->userid = $USER->id;
             $progress->highestpercent = $percent;
+            $progress->highesttime = $currenttime;
             $progress->iscompleted = $completed;
             $progress->timecreated = time();
             $progress->timemodified = time();
@@ -99,6 +115,7 @@ class save_progress extends external_api {
 
         // Update Moodle completion if target reached.
         if ($completed) {
+            $course = get_course($cm->course);
             require_once($CFG->libdir . '/completionlib.php');
             $completion = new \completion_info($course);
             if ($completion->is_enabled($cm)) {

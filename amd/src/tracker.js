@@ -23,9 +23,10 @@
 /* global YT */
 define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notification) {
     return {
-        init: function(cmid, targetPercent, isYouTube, videoId, currentPercent) {
+        init: function(cmid, targetPercent, isYouTube, videoId, currentPercent, highestTime) {
             var highestPercent = currentPercent || 0;
             var lastSavedPercent = highestPercent;
+            var lastSavedTime = highestTime || 0;
             var completed = highestPercent >= targetPercent;
             var maxAllowedTime = 0;
             var isForcing = false;
@@ -34,13 +35,30 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
 
             var saveProgress = function(percent) {
                 var floorPercent = Math.floor(percent);
-                if (floorPercent > lastSavedPercent) {
+                var currentTime = maxAllowedTime;
+                
+                if (isYouTube && window.ytPlayer && window.ytPlayer.getCurrentTime) {
+                    var ytTime = window.ytPlayer.getCurrentTime();
+                    if (isFreeNavigation || ytTime > maxAllowedTime) currentTime = ytTime;
+                } else {
+                    var video = document.getElementById('videotrack-player');
+                    if (video) {
+                        var htmlTime = video.currentTime;
+                        if (isFreeNavigation || htmlTime > maxAllowedTime) currentTime = htmlTime;
+                    }
+                }
+
+                var floorTime = Math.floor(currentTime);
+
+                if (floorPercent > lastSavedPercent || floorTime > lastSavedTime) {
                     lastSavedPercent = floorPercent;
+                    lastSavedTime = floorTime;
                     ajax.call([{
                         methodname: 'mod_videotrack_save_progress',
                         args: {
                             cmid: cmid,
-                            percent: floorPercent
+                            percent: floorPercent,
+                            currenttime: Math.floor(currentTime)
                         }
                     }])[0].fail(notification.exception);
                 }

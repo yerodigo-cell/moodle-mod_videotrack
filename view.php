@@ -130,6 +130,7 @@ if (empty($videourl) || (!$isyoutube && strpos($videourl, 'http') === false)) {
 // Search for current progress.
 $progress = $DB->get_record('videotrack_progress', ['videotrackid' => $videotrack->id, 'userid' => $USER->id]);
 $currentpercent = $progress ? (int)$progress->highestpercent : 0;
+$highesttime = ($progress && isset($progress->highesttime)) ? (int)$progress->highesttime : 0;
 $iscompleted = $progress ? (bool)$progress->iscompleted : false;
 
 $isfree = ($videotrack->targetpercent <= 0);
@@ -144,23 +145,27 @@ if ($iscompleted || $isfree) {
     }
 }
 
-$templatecontext = [
-    'videourl' => $videourl,
-    'isyoutube' => $isyoutube,
-    'ytid' => $ytid,
-    'targetpercent' => $videotrack->targetpercent,
-    'currentpercent' => $currentpercent,
-    'iscompleted' => $iscompleted,
-    'isfree' => $isfree,
-    'showresumebutton' => ($currentpercent > 0 && $currentpercent < 100),
-    'progresstitle' => get_string('progresstitle', 'mod_videotrack'),
-    'progressfree'  => $videotrack->free_navigation,
-    'progresshint'  => $videotrack->free_navigation
-        ? get_string('progressfree', 'mod_videotrack')
-        : get_string('progresshint', 'mod_videotrack', $videotrack->targetpercent),
-    'successmsg' => get_string('successmsg', 'mod_videotrack'),
-    'resumebtntext' => get_string('resumebutton', 'mod_videotrack', $currentpercent),
-];
+    $formattedtime = ($highesttime >= 3600) 
+        ? sprintf("%02d:%02d:%02d", floor($highesttime / 3600), floor(($highesttime / 60) % 60), $highesttime % 60)
+        : sprintf("%02d:%02d", floor($highesttime / 60), $highesttime % 60);
+
+    $templatecontext = [
+        'videourl' => $videourl,
+        'isyoutube' => $isyoutube,
+        'ytid' => $ytid,
+        'targetpercent' => $videotrack->targetpercent,
+        'currentpercent' => $currentpercent,
+        'iscompleted' => $iscompleted,
+        'isfree' => $isfree,
+        'showresumebutton' => ($currentpercent > 0 && $currentpercent < 100),
+        'progresstitle' => get_string('progresstitle', 'mod_videotrack'),
+        'progressfree'  => $isfree,
+        'progresshint'  => $isfree
+            ? get_string('progressfree', 'mod_videotrack')
+            : get_string('progresshint', 'mod_videotrack', $videotrack->targetpercent),
+        'successmsg' => get_string('successmsg', 'mod_videotrack'),
+        'resumebtntext' => get_string('resumebutton', 'mod_videotrack', $formattedtime),
+    ];
 
 $PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
     $cm->id,
@@ -168,6 +173,7 @@ $PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
     $isyoutube,
     $ytid,
     $currentpercent,
+    $highesttime
 ]);
 
 echo $OUTPUT->header();

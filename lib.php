@@ -23,6 +23,36 @@
  */
 
 
+/**
+ * Tries to extract a direct, public mp4 link from a HeyGen URL.
+ * It targets the resource2.heygen.ai CDN which hosts public transcoded videos.
+ *
+ * @param string $url The original URL
+ * @return string The mp4 URL if found, otherwise the original URL.
+ */
+function videotrack_extract_heygen_url($url) {
+    if (strpos($url, 'app.heygen.com') !== false) {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
+        $curl = new curl();
+        $curl->setopt(array(
+            'CURLOPT_USERAGENT' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'CURLOPT_TIMEOUT' => 10,
+        ));
+        $content = $curl->get($url);
+        
+        // Search specifically for the public transcoded videos on resource2.heygen.ai
+        if (preg_match_all('/https:\/\/resource2\.heygen\.ai[^"\'<>]+?\.mp4/i', $content, $matches)) {
+            if (!empty($matches[0])) {
+                $extracted = $matches[0][0];
+                $extracted = str_replace('\u0026', '&', $extracted);
+                return $extracted; // Return the public .mp4 link found
+            }
+        }
+    }
+    return $url;
+}
+
 
 /**
  * Add a new instance of the videotrack activity.
@@ -35,6 +65,10 @@ function videotrack_add_instance($videotrack, $mform = null) {
     global $DB;
     $videotrack->timecreated = time();
     $videotrack->timemodified = $videotrack->timecreated;
+
+    if (!empty($videotrack->videourl)) {
+        $videotrack->videourl = videotrack_extract_heygen_url($videotrack->videourl);
+    }
 
     $id = $DB->insert_record('videotrack', $videotrack);
 
@@ -64,6 +98,10 @@ function videotrack_update_instance($videotrack, $mform = null) {
     global $DB;
     $videotrack->timemodified = time();
     $videotrack->id = $videotrack->instance;
+
+    if (!empty($videotrack->videourl)) {
+        $videotrack->videourl = videotrack_extract_heygen_url($videotrack->videourl);
+    }
 
     $DB->update_record('videotrack', $videotrack);
 

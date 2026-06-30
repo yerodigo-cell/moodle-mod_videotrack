@@ -32,7 +32,22 @@
 function xmldb_videotrack_upgrade($oldversion): bool {
     global $CFG, $DB;
 
-    // No upgrade steps needed for the initial version.
+    if ($oldversion < 2026063000) {
+
+        // Define field highesttime to be added to videotrack_progress.
+        $table = new xmldb_table('videotrack_progress');
+        $field = new xmldb_field('highesttime', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'highestpercent');
+
+        $dbman = $DB->get_manager();
+        
+        // Conditionally launch add field highesttime.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Videotrack savepoint reached.
+        upgrade_mod_savepoint(true, 2026063000, 'videotrack');
+    }
 
     return true;
 }
