@@ -145,7 +145,7 @@ if ($iscompleted || $isfree) {
     }
 }
 
-$formattedtime = ($highesttime >= 3600) 
+$formattedtime = ($highesttime >= 3600)
     ? sprintf("%02d:%02d:%02d", floor($highesttime / 3600), floor(($highesttime / 60) % 60), $highesttime % 60)
     : sprintf("%02d:%02d", floor($highesttime / 60), $highesttime % 60);
 
