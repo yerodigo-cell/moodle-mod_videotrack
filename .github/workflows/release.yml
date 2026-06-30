@@ -1,0 +1,58 @@
+name: Release to Moodle.org
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to be released (e.g., v1.1)'
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release-at-moodle-org:
+    runs-on: ubuntu-latest
+    env:
+      PLUGIN: mode_videotrack
+      CURL: curl -s
+      ENDPOINT: https://moodle.org/webservice/rest/server.php
+      TOKEN: ${{ secrets.MOODLE_ORG_TOKEN }}
+      FUNCTION: local_plugins_add_version
+
+    steps:
+      - name: Call the service function
+        id: add-version
+        run: |
+          if [[ ! -z "${{ github.event.inputs.tag }}" ]]; then
+            TAGNAME="${{ github.event.inputs.tag }}"
+          elif [[ ! -z "${{ github.event.release.tag_name }}" ]]; then
+            TAGNAME="${{ github.event.release.tag_name }}"
+          fi
+          
+          if [[ -z "${TAGNAME}" ]]; then
+            echo "No tag name has been provided!"
+            exit 1
+          fi
+          
+          ZIPURL="https://api.github.com/repos/${{ github.repository }}/zipball/${TAGNAME}"
+          RESPONSE=$(${CURL} ${ENDPOINT} --data-urlencode "wstoken=${TOKEN}" \
+                                         --data-urlencode "wsfunction=${FUNCTION}" \
+                                         --data-urlencode "moodlewsrestformat=json" \
+                                         --data-urlencode "frankenstyle=${PLUGIN}" \
+                                         --data-urlencode "zipurl=${ZIPURL}" \
+                                         --data-urlencode "vcssystem=git" \
+                                         --data-urlencode "vcsrepositoryurl=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+                                         --data-urlencode "vcstag=${TAGNAME}" \
+                                         --data-urlencode "changelogurl=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAGNAME}" \
+                                         --data-urlencode "altdownloadurl=${ZIPURL}")
+          echo "response=${RESPONSE}" >> $GITHUB_OUTPUT
+
+      - name: Evaluate the response
+        id: evaluate-response
+        env:
+          RESPONSE: ${{ steps.add-version.outputs.response }}
+        run: |
+          jq <<< ${RESPONSE}
