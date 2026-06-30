@@ -4,8 +4,9 @@
 
 ## Key Features
 
-*   **Flexible Video Sources**: Supports embedding videos via external links (including YouTube, YouTube Shorts, and other direct URLs), as well as direct MP4 file uploads.
+*   **Flexible Video Sources**: Supports embedding videos via external links (including YouTube, YouTube Shorts, Heygen, and other direct URLs), as well as direct MP4 file uploads.
 *   **Real-Time Progress Tracking**: Automatically monitors and records the student's highest video playback position in real time.
+*   **Resume Playback**: A smart resume button allows students to return to the exact minute and second where they left off, ensuring a seamless learning experience across multiple sessions.
 *   **Playback Control (No Forwarding)**: Prevents students from fast-forwarding or skipping ahead through parts of the video they have not yet watched.
 *   **Target-Based Completion**: Set a custom completion threshold (e.g., 80%) where the activity is automatically marked as completed once reached. Setting the target to `0` enables free viewing with unrestricted navigation.
 *   **Detailed Progress Reports**: Provides teachers with a comprehensive dashboard showing each student's highest playback percentage and current activity completion status.
