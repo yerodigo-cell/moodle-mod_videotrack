@@ -53,11 +53,12 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(format_string($videotrack->name) . ' - ' . get_string('report', 'mod_videotrack'));
 
 // 4. Find enrolled students in the course with permission to view the activity.
-$users = get_enrolled_users($context, 'mod/videotrack:view', 0, 'u.id, u.firstname, u.lastname, u.email, u.picture, u.imagealt');
+// Fetch all user fields (u.*) to prevent issues with custom themes or missing fields for fullname/user_picture.
+$users = get_enrolled_users($context, 'mod/videotrack:view', 0, 'u.*');
 
 // Filter to exclude users with capacity to manage the activity (teachers, admins).
 foreach ($users as $key => $user) {
-    if (has_capability('moodle/course:manageactivities', $context, $user->id)) {
+    if (has_capability('moodle/course:manageactivities', $context, $user)) {
         unset($users[$key]);
     }
 }
@@ -88,7 +89,16 @@ if (empty($users)) {
         $progress = $allprogress[$user->id] ?? null;
 
         $fullname = fullname($user);
+        // Fallback in case a custom plugin/theme incorrectly returns an object.
+        if (is_object($fullname)) {
+            $fullname = $user->firstname . ' ' . $user->lastname;
+        }
+
         $userpicture = $OUTPUT->user_picture($user, ['size' => 35]);
+        // Fallback in case a custom theme renderer incorrectly returns an object.
+        if (is_object($userpicture)) {
+            $userpicture = '';
+        }
 
         // Student cell with avatar and name.
         $studentcell = html_writer::div($userpicture . ' ' . html_writer::span($fullname, 'ml-2'), 'd-flex align-items-center');
