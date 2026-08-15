@@ -72,8 +72,13 @@ class get_reactions extends external_api {
         self::validate_context($context);
         require_capability('mod/videotrack:view', $context);
 
-        $records = $DB->get_records('videotrack_reactions', ['videotrackid' => $videotrack->id], 'timeoffset ASC', 'id, reaction, timeoffset');
-        
+        $records = $DB->get_records(
+            'videotrack_reactions',
+            ['videotrackid' => $videotrack->id],
+            'timeoffset ASC',
+            'id, reaction, timeoffset'
+        );
+
         $reactions = [];
         foreach ($records as $record) {
             $reactions[] = [
