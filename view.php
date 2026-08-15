@@ -18,7 +18,7 @@
  * VideoTrack (mod_videotrack)
  *
  * @package     mod_videotrack
- * @copyright   2026 Yeison Díaz
+ * @copyright   2026 EduPlugins Studio
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -150,6 +150,7 @@ $formattedtime = ($highesttime >= 3600)
     : sprintf("%02d:%02d", floor($highesttime / 60), $highesttime % 60);
 
 $templatecontext = [
+    'cmid' => $cm->id,
     'videourl' => $videourl,
     'isyoutube' => $isyoutube,
     'ytid' => $ytid,

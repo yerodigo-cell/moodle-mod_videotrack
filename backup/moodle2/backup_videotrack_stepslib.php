@@ -18,7 +18,7 @@
  * VideoTrack (mod_videotrack)
  *
  * @package     mod_videotrack
- * @copyright   2026 Yeison Díaz
+ * @copyright   2026 EduPlugins Studio
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -28,7 +28,7 @@
  * Structure step class for backup.
  *
  * @package    mod_videotrack
- * @copyright  2026 Yeison Díaz
+ * @copyright   2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class backup_videotrack_activity_structure_step extends backup_activity_structure_step {

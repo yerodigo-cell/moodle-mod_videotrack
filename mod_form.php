@@ -18,7 +18,7 @@
  * VideoTrack (mod_videotrack)
  *
  * @package     mod_videotrack
- * @copyright   2026 Yeison Díaz
+ * @copyright   2026 EduPlugins Studio
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -30,7 +30,7 @@ require_once($CFG->dirroot . '/course/moodleform_mod.php');
  * Module form.
  *
  * @package    mod_videotrack
- * @copyright  2026 Yeison Díaz
+ * @copyright   2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class mod_videotrack_mod_form extends moodleform_mod {

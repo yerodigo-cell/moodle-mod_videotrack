@@ -18,7 +18,7 @@
  * Web service definitions for mod_videotrack.
  *
  * @package    mod_videotrack
- * @copyright  2026 Yeison Díaz
+ * @copyright  2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -30,6 +30,22 @@ $functions = [
         'methodname'    => 'execute',
         'description'   => 'Saves the video progress of a user.',
         'type'          => 'write',
+        'ajax'          => true,
+        'loginrequired' => true,
+    ],
+    'mod_videotrack_save_reaction' => [
+        'classname'     => 'mod_videotrack\external\save_reaction',
+        'methodname'    => 'execute',
+        'description'   => 'Saves a video reaction.',
+        'type'          => 'write',
+        'ajax'          => true,
+        'loginrequired' => true,
+    ],
+    'mod_videotrack_get_reactions' => [
+        'classname'     => 'mod_videotrack\external\get_reactions',
+        'methodname'    => 'execute',
+        'description'   => 'Gets reactions for a video.',
+        'type'          => 'read',
         'ajax'          => true,
         'loginrequired' => true,
     ],

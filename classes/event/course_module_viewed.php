@@ -18,7 +18,7 @@
  * VideoTrack (mod_videotrack)
  *
  * @package     mod_videotrack
- * @copyright   2026 Yeison Díaz
+ * @copyright   2026 EduPlugins Studio
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -29,7 +29,7 @@ namespace mod_videotrack\event;
  * The course_module_viewed event class.
  *
  * @package    mod_videotrack
- * @copyright  2026 Yeison Díaz
+ * @copyright   2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class course_module_viewed extends \core\event\course_module_viewed {
