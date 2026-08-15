@@ -46,7 +46,7 @@ class save_reaction extends external_api {
     public static function execute_parameters() {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'The course module ID.'),
-            'reaction' => new external_value(PARAM_ALPHA, 'The reaction code (e.g. heart, like).'),
+            'reaction' => new external_value(PARAM_ALPHANUMEXT, 'The reaction code (e.g. heart, like).'),
             'timeoffset' => new external_value(PARAM_INT, 'The time offset in seconds where the reaction occurred.'),
         ]);
     }
