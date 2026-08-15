@@ -89,8 +89,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 }, 3000);
             };
 
-            // eslint-disable-next-line camelcase
-            window.videotrack_react = function(reactionCode) {
+            window.videotrackReact = function(reactionCode) {
                 var currentTime = 0;
                 try {
                     currentTime = getCurrentTime();
@@ -128,7 +127,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 e.preventDefault();
                 var btn = $(this);
                 var reactionCode = btn.data('reaction');
-                window.videotrack_react(reactionCode);
+                window.videotrackReact(reactionCode);
             });
 
             // Check loop for displaying existing reactions

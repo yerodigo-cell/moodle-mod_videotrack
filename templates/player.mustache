@@ -33,7 +33,7 @@
         <!-- Resume button (Overlay) -->
         {{#showresumebutton}}
         <div id="vt-resume-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
-            <button id="vt-resume-btn" onclick="if(window.videotrack_resume) window.videotrack_resume(); return false;">
+            <button id="vt-resume-btn" onclick="if(window.videotrackResume) window.videotrackResume(); return false;">
                 <i class="fa fa-play"></i> {{ resumebtntext }}
             </button>
         </div>
@@ -66,15 +66,15 @@
 
     <!-- Reaction Bar (Individual Circles Style) -->
     <div style="display: flex; justify-content: center; flex-wrap: wrap; margin-top: 15px; position: relative; z-index: 50; gap: 15px;">
-        <button class="vt-react-btn" data-reaction="heart" onclick="if(window.videotrack_react) window.videotrack_react('heart'); return false;">❤️</button>
-        <button class="vt-react-btn" data-reaction="laugh" onclick="if(window.videotrack_react) window.videotrack_react('laugh'); return false;">😂</button>
-        <button class="vt-react-btn" data-reaction="like" onclick="if(window.videotrack_react) window.videotrack_react('like'); return false;">👍</button>
-        <button class="vt-react-btn" data-reaction="wow" onclick="if(window.videotrack_react) window.videotrack_react('wow'); return false;">😲</button>
-        <button class="vt-react-btn" data-reaction="clap" onclick="if(window.videotrack_react) window.videotrack_react('clap'); return false;">👏🏼</button>
-        <button class="vt-react-btn" data-reaction="ok" onclick="if(window.videotrack_react) window.videotrack_react('ok'); return false;">👌🏼</button>
-        <button class="vt-react-btn" data-reaction="raised_hands" onclick="if(window.videotrack_react) window.videotrack_react('raised_hands'); return false;">🙌🏼</button>
-        <button class="vt-react-btn" data-reaction="thinking" onclick="if(window.videotrack_react) window.videotrack_react('thinking'); return false;">🤔</button>
-        <button class="vt-react-btn" data-reaction="rocket" onclick="if(window.videotrack_react) window.videotrack_react('rocket'); return false;">🚀</button>
+        <button class="vt-react-btn" data-reaction="heart" onclick="if(window.videotrackReact) window.videotrackReact('heart'); return false;">❤️</button>
+        <button class="vt-react-btn" data-reaction="laugh" onclick="if(window.videotrackReact) window.videotrackReact('laugh'); return false;">😂</button>
+        <button class="vt-react-btn" data-reaction="like" onclick="if(window.videotrackReact) window.videotrackReact('like'); return false;">👍</button>
+        <button class="vt-react-btn" data-reaction="wow" onclick="if(window.videotrackReact) window.videotrackReact('wow'); return false;">😲</button>
+        <button class="vt-react-btn" data-reaction="clap" onclick="if(window.videotrackReact) window.videotrackReact('clap'); return false;">👏🏼</button>
+        <button class="vt-react-btn" data-reaction="ok" onclick="if(window.videotrackReact) window.videotrackReact('ok'); return false;">👌🏼</button>
+        <button class="vt-react-btn" data-reaction="raised_hands" onclick="if(window.videotrackReact) window.videotrackReact('raised_hands'); return false;">🙌🏼</button>
+        <button class="vt-react-btn" data-reaction="thinking" onclick="if(window.videotrackReact) window.videotrackReact('thinking'); return false;">🤔</button>
+        <button class="vt-react-btn" data-reaction="rocket" onclick="if(window.videotrackReact) window.videotrackReact('rocket'); return false;">🚀</button>
     </div>
 
     <!-- Progress Interface -->
@@ -97,7 +97,7 @@
 
 {{#js}}
 require(['jquery'], function($) {
-    window.videotrack_resume = function() {
+    window.videotrackResume = function() {
         var targetPercent = Number("{{currentpercent}}") || 0;
         var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};
 
@@ -137,7 +137,7 @@ require(['jquery'], function($) {
 
     $('#vt-resume-btn').on('click', function(e) {
         e.preventDefault();
-        window.videotrack_resume();
+        window.videotrackResume();
     });
 
     // Hide button if the video is played manually
