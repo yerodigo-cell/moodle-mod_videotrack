@@ -34,14 +34,14 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
     };
 
     return {
-        init: function(cmid, isYouTube, videoId) {
+        init: function(cmid, isYouTube) {
             var loadedReactions = [];
             var displayedReactions = {}; // To prevent showing the same reaction multiple times
 
             // Fetch existing reactions from server
             ajax.call([{
                 methodname: 'mod_videotrack_get_reactions',
-                args: { cmid: cmid }
+                args: {cmid: cmid}
             }])[0].done(function(result) {
                 if (result.reactions) {
                     loadedReactions = result.reactions;
@@ -72,27 +72,30 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 return 0;
             };
 
-            var displayFloatingReaction = function(reactionCode, forceRandomId) {
+            var displayFloatingReaction = function(reactionCode) {
                 var emoji = reactionEmojis[reactionCode] || '👍';
                 var container = $('#vt-floating-reactions');
-                
+
                 // Add a random slight horizontal offset
                 var rightOffset = 20 + Math.random() * 40;
-                
-                var el = $('<div class="vt-floating-emoji" style="right: ' + rightOffset + 'px; z-index: 9999;">' + emoji + '</div>');
+
+                var el = $('<div class="vt-floating-emoji" ' +
+                    'style="right: ' + rightOffset + 'px; z-index: 9999;">' + emoji + '</div>');
                 container.append(el);
-                
+
                 // Remove the element after animation completes (3 seconds)
                 setTimeout(function() {
                     el.remove();
                 }, 3000);
             };
 
+            // eslint-disable-next-line camelcase
             window.videotrack_react = function(reactionCode) {
                 var currentTime = 0;
                 try {
                     currentTime = getCurrentTime();
                 } catch (err) {
+                    // eslint-disable-next-line no-console
                     console.log('Error getting current time:', err);
                 }
 
@@ -115,6 +118,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                         timeoffset: currentTime
                     });
                 }).fail(function(ex) {
+                    // eslint-disable-next-line no-console
                     console.log('Error saving reaction:', ex);
                 });
             };
@@ -131,7 +135,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
             setInterval(function() {
                 var currentTime = getCurrentTime();
                 var duration = getDuration();
-                
+
                 var isPaused = false;
                 if (isYouTube && window.ytPlayer && window.ytPlayer.getPlayerState) {
                     isPaused = (window.ytPlayer.getPlayerState() !== 1);
@@ -146,7 +150,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 } else {
                     $('.vt-player-wrapper').removeClass('vt-is-paused');
                 }
-                
+
                 // Reset displayed states if user seeks back 2 seconds or more
                 if (window.lastReactionTime && currentTime < window.lastReactionTime - 2) {
                     displayedReactions = {};
@@ -155,7 +159,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
 
                 for (var i = 0; i < loadedReactions.length; i++) {
                     var r = loadedReactions[i];
-                    
+
                     // Draw timeline marker if duration is known and marker not drawn
                     if (duration > 0 && !r.markerDrawn) {
                         var percentage = (r.timeoffset / duration) * 100;
@@ -163,7 +167,13 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                         var markerId = 'vt-marker-' + r.id;
                         var verticalOffset = isYouTube ? '-45px' : '-10px';
                         if ($('#' + markerId).length === 0) {
-                            var marker = $('<div id="' + markerId + '" style="position: absolute; left: ' + percentage + '%; bottom: 0px; font-size: 24px; --vt-y-offset: ' + verticalOffset + '; transform: translate(-50%, ' + verticalOffset + '); z-index: 5; text-shadow: 0 2px 4px rgba(0,0,0,0.5); animation: vt-pop-in 0.4s ease-out forwards;">' + emoji + '</div>');
+                            var markerHtml = '<div id="' + markerId + '" ' +
+                                'style="position: absolute; left: ' + percentage + '%; bottom: 0px; ' +
+                                'font-size: 24px; --vt-y-offset: ' + verticalOffset + '; ' +
+                                'transform: translate(-50%, ' + verticalOffset + '); z-index: 5; ' +
+                                'text-shadow: 0 2px 4px rgba(0,0,0,0.5); ' +
+                                'animation: vt-pop-in 0.4s ease-out forwards;">' + emoji + '</div>';
+                            var marker = $(markerHtml);
                             $('#vt-reaction-markers').append(marker);
                         }
                         r.markerDrawn = true;
