@@ -28,7 +28,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
         'wow': '😲',
         'clap': '👏🏼',
         'ok': '👌🏼',
-        'raised_hands': '🙌🏼',
+        'raisedhands': '🙌🏼',
         'thinking': '🤔',
         'rocket': '🚀'
     };
