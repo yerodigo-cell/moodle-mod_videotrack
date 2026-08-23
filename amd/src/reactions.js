@@ -164,7 +164,8 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                         var percentage = (r.timeoffset / duration) * 100;
                         var emoji = reactionEmojis[r.reaction] || '👍';
                         var markerId = 'vt-marker-' + r.id;
-                        var verticalOffset = isYouTube ? '-45px' : '-10px';
+                        // Unified offset for both HTML5 and YouTube since we use a custom timeline
+                        var verticalOffset = '0px'; 
                         if ($('#' + markerId).length === 0) {
                             var markerHtml = '<div id="' + markerId + '" ' +
                                 'style="position: absolute; left: ' + percentage + '%; bottom: 0px; ' +

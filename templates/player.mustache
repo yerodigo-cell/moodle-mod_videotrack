@@ -28,7 +28,7 @@
 <div class="videotrack-container p-3 mb-4 bg-white rounded border shadow-sm">
     
     <!-- Player wrapper to position overlay -->
-    <div class="vt-player-wrapper" style="position: relative;">
+    <div class="vt-player-wrapper" style="position: relative; border-radius: 8px; overflow: hidden; background: #000;">
         
         <!-- Resume button (Overlay) -->
         {{#showresumebutton}}
@@ -41,15 +41,15 @@
 
         {{#isyoutube}}
             <!-- YouTube Player -->
-            <div class="embed-responsive embed-responsive-16by9" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">
+            <div class="vt-video-container embed-responsive embed-responsive-16by9" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #000; width: 100%;">
                 <div id="youtube-player" data-videoid="{{ytid}}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
             </div>
         {{/isyoutube}}
         
         {{^isyoutube}}
             <!-- Native HTML5 Player (Local files / Direct MP4) -->
-            <div style="border-radius: 8px; overflow: hidden; background: #000; text-align: center;">
-                <video id="videotrack-player" controls style="width: 100%; max-height: 650px;">
+            <div class="vt-video-container" style="border-radius: 8px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; width: 100%;">
+                <video id="videotrack-player" style="width: 100%; max-height: 650px; object-fit: contain;">
                     <source src="{{videourl}}" type="video/mp4">
                     Tu navegador no soporta video HTML5.
                 </video>
@@ -59,9 +59,37 @@
         <!-- Floating Reactions Container -->
         <div id="vt-floating-reactions" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; overflow: hidden;"></div>
         
-        <!-- Reaction Markers Container (Overlayed on video) -->
-        <div id="vt-reaction-markers" style="position: absolute; bottom: 38px; left: 1.5%; width: 97%; pointer-events: none; z-index: 20;"></div>
-        
+        <!-- Custom Controls (HeyGen Style) -->
+        <div class="vt-custom-controls" id="vt-custom-controls">
+            <!-- Progress Bar Row -->
+            <div class="vt-progress-container">
+                <input type="range" id="vt-seek-slider" class="vt-seek-slider" min="0" max="100" value="0" step="0.1">
+                <!-- Reaction Markers Container (Overlayed perfectly on slider) -->
+                <div id="vt-reaction-markers" style="position: absolute; bottom: 12px; left: 0; width: 100%; pointer-events: none; z-index: 20;"></div>
+            </div>
+            
+            <!-- Buttons Row -->
+            <div class="vt-controls-row">
+                <div class="vt-controls-left">
+                    <button class="vt-ctrl-btn vt-play-pause-btn" id="vt-play-pause-btn" title="Play/Pause">
+                        <i class="fa fa-play"></i>
+                    </button>
+                    <button class="vt-ctrl-btn vt-mute-btn" id="vt-mute-btn" title="Mute/Unmute">
+                        <i class="fa fa-volume-up"></i>
+                    </button>
+                </div>
+                
+                <div class="vt-controls-center">
+                    <div class="vt-time-display" id="vt-time-display">0:00 / 0:00</div>
+                </div>
+                
+                <div class="vt-controls-right">
+                    <button class="vt-ctrl-btn vt-fullscreen-btn" id="vt-fullscreen-btn" title="Fullscreen">
+                        <i class="fa fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Reaction Bar (Individual Circles Style) -->
@@ -152,11 +180,15 @@ require(['jquery'], function($) {
     }
 });
 
-require(['mod_videotrack/reactions'], function(reactions) {
+require(['mod_videotrack/reactions', 'mod_videotrack/controls'], function(reactions, controls) {
     var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};
     var cmid = "{{cmid}}";
+    var ytid = "{{ytid}}";
+
+    // Initialize custom controls
+    controls.init(isYouTube, ytid);
 
     // Initialize reactions
-    reactions.init(cmid, isYouTube, '{{ytid}}');
+    reactions.init(cmid, isYouTube, ytid);
 });
 {{/js}}

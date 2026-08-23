@@ -158,7 +158,9 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                         videoId: videoId,
                         playerVars: {
                             'playsinline': 1,
-                            'rel': 0
+                            'rel': 0,
+                            'controls': 0,
+                            'disablekb': 1
                         },
                         events: {
                             'onStateChange': onPlayerStateChange
