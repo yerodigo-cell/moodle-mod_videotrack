@@ -155,7 +155,8 @@ define(['jquery'], function($) {
 
             // YouTube Event Polling
             if (isYouTube) {
-                // Cannot natively bind click to iframe easily due to CORS, but wrapper is above it partially or users can use the play button.
+                // Cannot natively bind click to iframe easily due to CORS,
+                // but wrapper is above it partially or users can use the play button.
 
                 setInterval(function() {
                     if (window.ytPlayer && window.ytPlayer.getPlayerState) {
