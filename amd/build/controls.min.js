@@ -22,7 +22,7 @@
  */
 define(['jquery'], function($) {
     return {
-        init: function(isYouTube, videoId) {
+        init: function(isYouTube) {
             var playPauseBtn = $('#vt-play-pause-btn');
             var playPauseIcon = playPauseBtn.find('i');
             var muteBtn = $('#vt-mute-btn');
@@ -138,7 +138,7 @@ define(['jquery'], function($) {
             if (video) {
                 // Clicking the video should also toggle play/pause
                 $(video).on('click', togglePlay);
-                
+
                 video.addEventListener('play', function() {
                     playPauseIcon.removeClass('fa-play').addClass('fa-pause');
                 });
@@ -156,7 +156,7 @@ define(['jquery'], function($) {
             // YouTube Event Polling
             if (isYouTube) {
                 // Cannot natively bind click to iframe easily due to CORS, but wrapper is above it partially or users can use the play button.
-                
+
                 setInterval(function() {
                     if (window.ytPlayer && window.ytPlayer.getPlayerState) {
                         var state = window.ytPlayer.getPlayerState();
@@ -165,20 +165,20 @@ define(['jquery'], function($) {
                         } else {
                             playPauseIcon.removeClass('fa-pause').addClass('fa-play');
                         }
-                        
+
                         var ct = window.ytPlayer.getCurrentTime() || 0;
                         var dur = window.ytPlayer.getDuration() || 0;
                         updateTimeUI(ct, dur);
                     }
                 }, 500);
             }
-            
+
             // Show/hide controls smoothly (Touch & Mouse)
             var controlTimeout;
             var wakeControls = function() {
                 $(wrapper).addClass('vt-active-controls');
                 clearTimeout(controlTimeout);
-                
+
                 var isPlaying = false;
                 if (isYouTube && window.ytPlayer && window.ytPlayer.getPlayerState) {
                     isPlaying = (window.ytPlayer.getPlayerState() === 1);
@@ -198,7 +198,7 @@ define(['jquery'], function($) {
                 $(video).on('play', wakeControls);
                 $(video).on('pause', wakeControls);
             }
-            
+
             // Fullscreen change listener to update icon and CSS classes
             var handleFsChange = function() {
                 var isFs = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;

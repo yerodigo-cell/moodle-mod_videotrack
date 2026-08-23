@@ -165,7 +165,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                         var emoji = reactionEmojis[r.reaction] || '👍';
                         var markerId = 'vt-marker-' + r.id;
                         // Unified offset for both HTML5 and YouTube since we use a custom timeline
-                        var verticalOffset = '0px'; 
+                        var verticalOffset = '0px';
                         if ($('#' + markerId).length === 0) {
                             var markerHtml = '<div id="' + markerId + '" ' +
                                 'style="position: absolute; left: ' + percentage + '%; bottom: 0px; ' +
