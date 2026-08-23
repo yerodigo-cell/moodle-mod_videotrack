@@ -41,15 +41,15 @@
 
         {{#isyoutube}}
             <!-- YouTube Player -->
-            <div class="vt-video-container embed-responsive embed-responsive-16by9" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #000; width: 100%;">
-                <div id="youtube-player" data-videoid="{{ytid}}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+            <div class="vt-video-container vt-youtube-container embed-responsive embed-responsive-16by9">
+                <div id="youtube-player" data-videoid="{{ytid}}"></div>
             </div>
         {{/isyoutube}}
         
         {{^isyoutube}}
             <!-- Native HTML5 Player (Local files / Direct MP4) -->
-            <div class="vt-video-container" style="border-radius: 8px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; width: 100%;">
-                <video id="videotrack-player" style="width: 100%; max-height: 650px; object-fit: contain;">
+            <div class="vt-video-container vt-html5-container">
+                <video id="videotrack-player">
                     <source src="{{videourl}}" type="video/mp4">
                     Tu navegador no soporta video HTML5.
                 </video>
