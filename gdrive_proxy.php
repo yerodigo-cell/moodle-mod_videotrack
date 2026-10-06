@@ -35,6 +35,25 @@ require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 require_capability('mod/videotrack:view', $context);
 
+// 1. Resolve the final Google Drive direct URL (bypasses virus scan prompts).
+// We cache this in the session because fetching the UUID takes 1-2 seconds.
+// If we don't cache it, every single video chunk request (seeking, buffering) will
+// add seconds of delay, causing the video to take a long time to start.
+if (!isset($SESSION->videotrack_gdrive_urls)) {
+    $SESSION->videotrack_gdrive_urls = [];
+}
+$now = time();
+$cached = $SESSION->videotrack_gdrive_urls[$fileid] ?? null;
+$baseurl = 'https://drive.google.com/uc?export=download&id=' . $fileid;
+
+if (!$cached || ($now - $cached->time > 3600)) {
+    $SESSION->videotrack_gdrive_urls[$fileid] = (object)[
+        'time' => $now,
+        'url' => videotrack_get_final_video_url($baseurl),
+    ];
+}
+$finalurl = $SESSION->videotrack_gdrive_urls[$fileid]->url;
+
 // Close session to prevent locking the user's Moodle navigation while streaming a large video.
 \core\session\manager::write_close();
 
@@ -46,10 +65,6 @@ set_time_limit(0);
 while (ob_get_level()) {
     ob_end_clean();
 }
-
-// 1. Resolve the final Google Drive direct URL (bypasses virus scan prompts).
-$baseurl = 'https://drive.google.com/uc?export=download&id=' . $fileid;
-$finalurl = videotrack_get_final_video_url($baseurl);
 
 // 2. Setup cURL for streaming.
 $ch = curl_init();
