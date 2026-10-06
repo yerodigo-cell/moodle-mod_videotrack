@@ -138,7 +138,7 @@ $currentpercent = $progress ? (int)$progress->highestpercent : 0;
 $highesttime = ($progress && isset($progress->highesttime)) ? (int)$progress->highesttime : 0;
 $iscompleted = $progress ? (bool)$progress->iscompleted : false;
 
-// If it's a Google Drive iframe, we cannot track progress. 
+// If it's a Google Drive iframe, we cannot track progress.
 // Automatically mark as complete so students don't get stuck.
 if ($isgdrive && !$iscompleted) {
     if (!$progress) {
@@ -157,13 +157,13 @@ if ($isgdrive && !$iscompleted) {
         $progress->timemodified = time();
         $DB->update_record('videotrack_progress', $progress);
     }
-    
-    // Trigger Moodle completion API
+
+    // Trigger Moodle completion API.
     $completion = new completion_info($course);
     if ($completion->is_enabled($cm)) {
         $completion->update_state($cm, COMPLETION_COMPLETE, $USER->id);
     }
-    
+
     $iscompleted = true;
     $currentpercent = 100;
 }

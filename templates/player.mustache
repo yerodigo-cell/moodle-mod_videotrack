@@ -1,47 +1,21 @@
-{{!
-    @template mod_videotrack/player
-
-    VideoTrack player template.
-
-    Context variables required for this template:
-    * isyoutube - Whether the video is from YouTube.
-    * ytid - The YouTube video ID.
-    * videourl - The URL of the video file (if not YouTube).
-    * progresstitle - The title for the progress section.
-    * currentpercent - The current progress percentage.
-    * progresshint - A hint text about the required progress.
-    * iscompleted - Whether the user has reached the required percentage.
-    * successmsg - The success message to show upon completion.
-
-    Example context (json):
-    {
-        "isyoutube": false,
-        "ytid": "",
-        "videourl": "https://example.com/video.mp4",
-        "progresstitle": "Progress",
-        "currentpercent": 50,
-        "progresshint": "Watch 80% to complete",
-        "iscompleted": false,
-        "successmsg": "Congratulations!"
-    }
-}}
-<div class="videotrack-container p-3 mb-4 bg-white rounded border shadow-sm">
-    
-    <!-- Player wrapper to position overlay -->
-    <div class="vt-player-wrapper" style="position: relative; border-radius: 8px; overflow: hidden; background: #000;">
+<div class="videotrack-container mb-4">
+    <!-- Main Video Wrapper -->
+    <div class="vt-player-wrapper" style="position: relative; max-width: var(--vt-max-w, 900px); margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-radius: var(--vt-rad, 8px);">
         
-        <!-- Resume button (Overlay) -->
+        {{^isgdrive}}
         {{#showresumebutton}}
-        <div id="vt-resume-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
-            <button id="vt-resume-btn" onclick="if(window.videotrackResume) window.videotrackResume(); return false;">
-                <i class="fa fa-play"></i> {{ resumebtntext }}
-            </button>
-        </div>
+            <!-- Resume Overlay -->
+            <div id="vt-resume-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--vt-rad, 8px);">
+                <button id="vt-resume-btn" class="btn btn-primary btn-lg" style="border-radius: 50px; padding: 15px 40px; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+                    <i class="fa fa-play-circle mr-2"></i> {{resumebtntext}}
+                </button>
+            </div>
         {{/showresumebutton}}
+        {{/isgdrive}}
 
         {{#isyoutube}}
-            <!-- YouTube Player -->
-            <div class="vt-video-container vt-youtube-container" style="position: relative; padding-bottom: var(--vt-yt-pad, 56.25%); height: var(--vt-yt-h, 0); overflow: hidden; border-radius: var(--vt-rad, 8px); background: #000; width: 100%;">
+            <!-- YouTube API Player Container -->
+            <div class="vt-video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: var(--vt-rad, 8px);">
                 <div id="youtube-player" data-videoid="{{ytid}}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
             </div>
         {{/isyoutube}}
@@ -99,9 +73,8 @@
                 </div>
             </div>
         </div>
-    </div>
-
         {{/isgdrive}}
+    </div> <!-- Close .vt-player-wrapper -->
 
     {{^isgdrive}}
     <!-- Reaction Bar (Individual Circles Style) -->
@@ -116,6 +89,7 @@
         <button class="vt-react-btn" data-reaction="thinking" onclick="if(window.videotrackReact) window.videotrackReact('thinking'); return false;">🤔</button>
         <button class="vt-react-btn" data-reaction="rocket" onclick="if(window.videotrackReact) window.videotrackReact('rocket'); return false;">🚀</button>
     </div>
+    {{/isgdrive}}
 
     <!-- Progress Interface -->
     <div class="mt-4 px-2">
@@ -140,7 +114,6 @@
         {{/isgdrive}}
     </div>
 </div>
-
 
 {{#js}}
 require(['jquery'], function($) {
