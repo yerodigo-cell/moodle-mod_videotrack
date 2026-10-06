@@ -34,13 +34,19 @@ define(['jquery'], function($) {
             var video = document.getElementById('videotrack-player');
             var isSeeking = false;
 
-            var formatTime = function(seconds) {
+            var formatTime = function(seconds, forceHours) {
                 if (isNaN(seconds)) {
-                    return "0:00";
+                    return forceHours ? "0:00:00" : "0:00";
                 }
-                var m = Math.floor(seconds / 60);
+                var h = Math.floor(seconds / 3600);
+                var m = Math.floor((seconds % 3600) / 60);
                 var s = Math.floor(seconds % 60);
-                return m + ":" + (s < 10 ? "0" : "") + s;
+                
+                if (h > 0 || forceHours) {
+                    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+                } else {
+                    return m + ":" + (s < 10 ? "0" : "") + s;
+                }
             };
 
             var updateTimeUI = function(currentTime, duration) {
@@ -49,7 +55,8 @@ define(['jquery'], function($) {
                     seekSlider.val(pct);
                     seekSlider.css('--vt-progress', pct + '%');
                 }
-                timeDisplay.text(formatTime(currentTime) + ' / ' + formatTime(duration));
+                var hasHours = duration >= 3600;
+                timeDisplay.text(formatTime(currentTime, hasHours) + ' / ' + formatTime(duration, hasHours));
             };
 
             var togglePlay = function() {
@@ -136,6 +143,20 @@ define(['jquery'], function($) {
 
             // HTML5 Video Events
             if (video) {
+                video.addEventListener('error', function(e) {
+                    var error = video.error;
+                    var errorMsg = "Video Error Code: " + (error ? error.code : 'Unknown');
+                    if (error && error.code === 1) errorMsg += " (ABORTED)";
+                    if (error && error.code === 2) errorMsg += " (NETWORK)";
+                    if (error && error.code === 3) errorMsg += " (DECODE)";
+                    if (error && error.code === 4) errorMsg += " (SRC_NOT_SUPPORTED)";
+                    console.error(errorMsg);
+                    
+                    var errorDiv = $('<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:white; background:rgba(255,0,0,0.8); padding:15px; border-radius:5px; text-align:center; z-index:9999; font-weight:bold;"></div>');
+                    errorDiv.text(errorMsg);
+                    $(wrapper).append(errorDiv);
+                });
+
                 // Clicking the video should also toggle play/pause
                 $(video).on('click', togglePlay);
 

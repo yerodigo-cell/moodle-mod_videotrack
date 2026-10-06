@@ -49,7 +49,7 @@
         {{^isyoutube}}
             <!-- Native HTML5 Player (Local files / Direct MP4) -->
             <div class="vt-video-container vt-html5-container" style="border-radius: var(--vt-rad, 8px); overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; width: 100%; height: var(--vt-h5-h, auto);">
-                <video id="videotrack-player" style="width: 100%; max-height: var(--vt-h5-maxh, 650px); object-fit: contain;">
+                <video id="videotrack-player" {{#isgdrive}}crossorigin="anonymous"{{/isgdrive}} preload="metadata" playsinline style="width: 100%; max-height: var(--vt-h5-maxh, 650px); object-fit: contain;">
                     <source src="{{videourl}}" type="video/mp4">
                     Tu navegador no soporta video HTML5.
                 </video>

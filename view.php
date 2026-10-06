@@ -58,8 +58,19 @@ $event->trigger();
 // Process video URL and check if it is a YouTube video (including Shorts).
 $videourl = trim($videotrack->videourl ?? '');
 $videourl = html_entity_decode($videourl);
+$videourl = videotrack_process_video_url($videourl);
 $isyoutube = false;
 $ytid = '';
+$isgdrive = (strpos($videourl, 'drive.google.com') !== false);
+
+if ($isgdrive) {
+    preg_match('/[?&]id=([a-zA-Z0-9_-]+)/', $videourl, $idmatches);
+    $fileid = $idmatches[1] ?? '';
+    if (!empty($fileid)) {
+        $videourl = new moodle_url('/mod/videotrack/gdrive_proxy.php', ['id' => $fileid, 'cmid' => $cm->id]);
+        $videourl = $videourl->out(false);
+    }
+}
 
 if (!empty($videourl)) {
     if (stripos($videourl, 'youtube.com') !== false || stripos($videourl, 'youtu.be') !== false) {
@@ -153,6 +164,7 @@ $templatecontext = [
     'cmid' => $cm->id,
     'videourl' => $videourl,
     'isyoutube' => $isyoutube,
+    'isgdrive' => (strpos($videourl, 'drive.google.com') !== false || strpos($videourl, 'drive.usercontent.google.com') !== false),
     'ytid' => $ytid,
     'targetpercent' => $videotrack->targetpercent,
     'currentpercent' => $currentpercent,

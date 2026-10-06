@@ -56,6 +56,75 @@ function videotrack_extract_heygen_url($url) {
 
 
 /**
+ * Processes the video URL to extract direct links for supported platforms.
+ *
+ * @param string $url The original URL
+ * @return string The processed URL
+ */
+function videotrack_process_video_url($url) {
+    // 1. Process HeyGen URLs
+    $url = videotrack_extract_heygen_url($url);
+
+    // 2. Process Google Drive URLs
+    if (strpos($url, 'drive.google.com') !== false) {
+        $fileid = '';
+        if (preg_match('/\/file\/d\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
+            $fileid = $matches[1];
+        } elseif (preg_match('/[?&]id=([a-zA-Z0-9_-]+)/', $url, $matches)) {
+            $fileid = $matches[1];
+        }
+        
+        if (!empty($fileid)) {
+            // Store the base uc?export=download URL in DB. 
+            // The actual virus scan bypass will be resolved at runtime.
+            $url = 'https://drive.google.com/uc?export=download&id=' . $fileid;
+        }
+    }
+
+    return $url;
+}
+
+/**
+ * Resolves the final direct video URL at runtime, bypassing Google Drive virus scan prompts if necessary.
+ *
+ * @param string $url The base URL (e.g. uc?export=download)
+ * @return string The resolved direct URL
+ */
+function videotrack_get_final_video_url($url) {
+    if (strpos($url, 'drive.google.com') !== false && strpos($url, 'export=download') !== false) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        
+        $response_data = '';
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($handle, $data) use (&$response_data) {
+            $response_data .= $data;
+            // Always abort after a few KB (30KB is enough to capture the entire HTML warning page).
+            if (strlen($response_data) > 30000) {
+                return 0; // Abort transfer
+            }
+            return strlen($data);
+        });
+        
+        curl_exec($ch);
+
+        // Check if Google returned the virus scan warning page
+        if ($response_data && preg_match('/name=["\']uuid["\']\s+value=["\']([^"\']+)["\']/i', $response_data, $matches)) {
+            $uuid = $matches[1];
+            preg_match('/[?&]id=([a-zA-Z0-9_-]+)/', $url, $idmatches);
+            $fileid = $idmatches[1] ?? '';
+            if ($fileid) {
+                // Construct the final download URL that bypasses the prompt
+                return "https://drive.usercontent.google.com/download?id={$fileid}&export=download&confirm=t&uuid={$uuid}";
+            }
+        }
+    }
+    return $url;
+}
+
+/**
  * Add a new instance of the videotrack activity.
  *
  * @param stdClass $videotrack The activity instance object.
@@ -68,7 +137,7 @@ function videotrack_add_instance($videotrack, $mform = null) {
     $videotrack->timemodified = $videotrack->timecreated;
 
     if (!empty($videotrack->videourl)) {
-        $videotrack->videourl = videotrack_extract_heygen_url($videotrack->videourl);
+        $videotrack->videourl = videotrack_process_video_url($videotrack->videourl);
     }
 
     $id = $DB->insert_record('videotrack', $videotrack);
@@ -101,7 +170,7 @@ function videotrack_update_instance($videotrack, $mform = null) {
     $videotrack->id = $videotrack->instance;
 
     if (!empty($videotrack->videourl)) {
-        $videotrack->videourl = videotrack_extract_heygen_url($videotrack->videourl);
+        $videotrack->videourl = videotrack_process_video_url($videotrack->videourl);
     }
 
     $DB->update_record('videotrack', $videotrack);
@@ -219,7 +288,7 @@ function videotrack_supports($feature) {
  * @param settings_navigation $settingsnav The settings navigation object.
  * @param navigation_node|null $node The navigation node.
  */
-function videotrack_extend_settings_navigation(settings_navigation $settingsnav, navigation_node $node = null) {
+function videotrack_extend_settings_navigation(settings_navigation $settingsnav, ?navigation_node $node = null) {
     global $PAGE;
     $cm = $PAGE->cm;
 
