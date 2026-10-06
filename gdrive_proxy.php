@@ -39,20 +39,19 @@ require_capability('mod/videotrack:view', $context);
 // We cache this in the session because fetching the UUID takes 1-2 seconds.
 // If we don't cache it, every single video chunk request (seeking, buffering) will
 // add seconds of delay, causing the video to take a long time to start.
-if (!isset($SESSION->videotrack_gdrive_urls)) {
-    $SESSION->videotrack_gdrive_urls = [];
-}
 $now = time();
-$cached = $SESSION->videotrack_gdrive_urls[$fileid] ?? null;
+$urlkey = "videotrack_gdrive_url_{$fileid}";
+$timekey = "videotrack_gdrive_time_{$fileid}";
 $baseurl = 'https://drive.google.com/uc?export=download&id=' . $fileid;
 
-if (!$cached || ($now - $cached->time > 3600)) {
-    $SESSION->videotrack_gdrive_urls[$fileid] = (object)[
-        'time' => $now,
-        'url' => videotrack_get_final_video_url($baseurl),
-    ];
+$cachedtime = $SESSION->{$timekey} ?? 0;
+$cachedurl = $SESSION->{$urlkey} ?? '';
+
+if (empty($cachedurl) || ($now - $cachedtime > 3600)) {
+    $SESSION->{$urlkey} = videotrack_get_final_video_url($baseurl);
+    $SESSION->{$timekey} = $now;
 }
-$finalurl = $SESSION->videotrack_gdrive_urls[$fileid]->url;
+$finalurl = $SESSION->{$urlkey};
 
 // Close session to prevent locking the user's Moodle navigation while streaming a large video.
 \core\session\manager::write_close();
