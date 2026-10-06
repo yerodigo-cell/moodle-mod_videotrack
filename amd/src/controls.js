@@ -143,16 +143,27 @@ define(['jquery'], function($) {
 
             // HTML5 Video Events
             if (video) {
-                video.addEventListener('error', function(e) {
+                video.addEventListener('error', function() {
                     var error = video.error;
                     var errorMsg = "Video Error Code: " + (error ? error.code : 'Unknown');
-                    if (error && error.code === 1) errorMsg += " (ABORTED)";
-                    if (error && error.code === 2) errorMsg += " (NETWORK)";
-                    if (error && error.code === 3) errorMsg += " (DECODE)";
-                    if (error && error.code === 4) errorMsg += " (SRC_NOT_SUPPORTED)";
-                    console.error(errorMsg);
+                    if (error && error.code === 1) {
+                        errorMsg += " (ABORTED)";
+                    }
+                    if (error && error.code === 2) {
+                        errorMsg += " (NETWORK)";
+                    }
+                    if (error && error.code === 3) {
+                        errorMsg += " (DECODE)";
+                    }
+                    if (error && error.code === 4) {
+                        errorMsg += " (SRC_NOT_SUPPORTED)";
+                    }
                     
-                    var errorDiv = $('<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:white; background:rgba(255,0,0,0.8); padding:15px; border-radius:5px; text-align:center; z-index:9999; font-weight:bold;"></div>');
+                    var errorDiv = $('<div style="position:absolute; top:50%; left:50%; ' + 
+                        'transform:translate(-50%, -50%); color:white; ' + 
+                        'background:rgba(255,0,0,0.8); padding:15px; ' + 
+                        'border-radius:5px; text-align:center; z-index:9999; ' + 
+                        'font-weight:bold;"></div>');
                     errorDiv.text(errorMsg);
                     $(wrapper).append(errorDiv);
                 });
