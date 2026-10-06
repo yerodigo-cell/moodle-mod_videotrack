@@ -136,8 +136,11 @@
         <p class="mt-2 text-muted small">{{{ progresshint }}}</p>
         
         <!-- Success message -->
-        <div id="vt-success-msg" class="alert alert-success mt-3 {{^iscompleted}}d-none{{/iscompleted}}" style="border-left: 5px solid #28a745;">
-            <i class="fa fa-check-circle mr-1"></i> {{ successmsg }}
+        <div id="vt-success-msg" class="mt-3 {{^iscompleted}}d-none{{/iscompleted}}" style="display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #e8f5e9 0%, #dcedc8 100%); padding: 12px 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15); border: 1px solid #c5e1a5; color: #33691e; transition: opacity 0.4s ease;">
+            <div style="background: #689f38; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(104, 159, 56, 0.4);">
+                <i class="fa fa-check" style="font-size: 16px;"></i>
+            </div>
+            <span style="font-weight: 600; font-size: 0.95em;">{{ successmsg }}</span>
         </div>
         {{/isgdrive}}
     </div>
