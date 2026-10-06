@@ -120,27 +120,38 @@
 
     <!-- Progress Interface -->
     <div class="mt-4 px-2">
+
         {{#isgdrive}}
-            <div class="text-muted small mt-3" style="display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #f8f9fa; padding: 12px 16px; border-radius: 6px; border: 1px solid #e9ecef;">
-                <i class="fa fa-info-circle" style="color: #6c757d; font-size: 1.1em;"></i> 
-                <span>{{{ gdrivenotrack }}}</span>
+            <div class="text-muted small mt-2" style="display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #f8fafc; padding: 14px 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <i class="fa fa-info-circle" style="color: #64748b; font-size: 1.2em;"></i> 
+                <span style="color: #475569; font-weight: 500;">{{{ gdrivenotrack }}}</span>
             </div>
         {{/isgdrive}}
         {{^isgdrive}}
-        <h4 class="h5 font-weight-bold">{{ progresstitle }}</h4>
-        <div class="progress mt-2" style="height: 25px; border-radius: 12px; background-color: #e9ecef; position: relative;">
-            <div id="vt-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: {{currentpercent}}%; min-width: 35px; transition: width 0.5s;" aria-valuenow="{{currentpercent}}" aria-valuemin="0" aria-valuemax="100">
-                <span id="vt-progress-text" class="font-weight-bold" style="font-size: 14px;">{{currentpercent}}%</span>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <h4 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">{{ progresstitle }}</h4>
+                <p style="margin: 0; font-size: 0.875rem; color: #64748b; line-height: 1.4;">{{{ progresshint }}}</p>
+            </div>
+            <div style="background: #f8fafc; padding: 6px 14px; border-radius: 24px; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; justify-content: center; min-width: 65px;">
+                <span id="vt-progress-text" style="font-size: 1rem; font-weight: 700; color: #0ea5e9; line-height: 1;">{{currentpercent}}%</span>
             </div>
         </div>
-        <p class="mt-2 text-muted small">{{{ progresshint }}}</p>
+
+        <div style="height: 12px; border-radius: 100px; background-color: #f1f5f9; overflow: hidden; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);">
+            <div id="vt-progress-bar" role="progressbar" style="height: 100%; width: {{currentpercent}}%; border-radius: 100px; background: linear-gradient(90deg, #0ea5e9 0%, #3b82f6 100%); transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: inset 0 -1px 2px rgba(0,0,0,0.1), 0 2px 4px rgba(59, 130, 246, 0.3);" aria-valuenow="{{currentpercent}}" aria-valuemin="0" aria-valuemax="100">
+            </div>
+        </div>
         
         <!-- Success message -->
-        <div id="vt-success-msg" class="mt-3 {{^iscompleted}}d-none{{/iscompleted}}" style="display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #e8f5e9 0%, #dcedc8 100%); padding: 12px 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15); border: 1px solid #c5e1a5; color: #33691e; transition: opacity 0.4s ease;">
-            <div style="background: #689f38; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(104, 159, 56, 0.4);">
-                <i class="fa fa-check" style="font-size: 16px;"></i>
+        <div id="vt-success-msg" class="mt-4 {{^iscompleted}}d-none{{/iscompleted}}" style="display: flex; align-items: center; gap: 14px; background: #f0fdf4; padding: 16px 20px; border-radius: 12px; border: 1px solid #bbf7d0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);">
+                <i class="fa fa-check" style="font-size: 15px;"></i>
             </div>
-            <span style="font-weight: 600; font-size: 0.95em;">{{ successmsg }}</span>
+            <div>
+                <span style="font-weight: 600; font-size: 0.95rem; color: #065f46; letter-spacing: -0.01em;">{{ successmsg }}</span>
+            </div>
         </div>
         {{/isgdrive}}
     </div>
