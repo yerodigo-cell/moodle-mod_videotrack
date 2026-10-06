@@ -75,54 +75,14 @@ function videotrack_process_video_url($url) {
         }
 
         if (!empty($fileid)) {
-            // Store the base uc?export=download URL in DB.
-            // The actual virus scan bypass will be resolved at runtime.
-            $url = 'https://drive.google.com/uc?export=download&id=' . $fileid;
+            // Store the preview URL in DB for iframe embedding.
+            $url = 'https://drive.google.com/file/d/' . $fileid . '/preview';
         }
     }
 
     return $url;
 }
 
-/**
- * Resolves the final direct video URL at runtime, bypassing Google Drive virus scan prompts if necessary.
- *
- * @param string $url The base URL (e.g. uc?export=download)
- * @return string The resolved direct URL
- */
-function videotrack_get_final_video_url($url) {
-    if (strpos($url, 'drive.google.com') !== false && strpos($url, 'export=download') !== false) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-
-        $responsedata = '';
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($handle, $data) use (&$responsedata) {
-            $responsedata .= $data;
-            // Always abort after a few KB (30KB is enough to capture the entire HTML warning page).
-            if (strlen($responsedata) > 30000) {
-                return 0; // Abort transfer.
-            }
-            return strlen($data);
-        });
-
-        curl_exec($ch);
-
-        // Check if Google returned the virus scan warning page.
-        if ($responsedata && preg_match('/name=["\']uuid["\']\s+value=["\']([^"\']+)["\']/i', $responsedata, $matches)) {
-            $uuid = $matches[1];
-            preg_match('/[?&]id=([a-zA-Z0-9_-]+)/', $url, $idmatches);
-            $fileid = $idmatches[1] ?? '';
-            if ($fileid) {
-                // Construct the final download URL that bypasses the prompt.
-                return "https://drive.usercontent.google.com/download?id={$fileid}&export=download&confirm=t&uuid={$uuid}";
-            }
-        }
-    }
-    return $url;
-}
 
 /**
  * Add a new instance of the videotrack activity.

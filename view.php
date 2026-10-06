@@ -63,14 +63,8 @@ $isyoutube = false;
 $ytid = '';
 $isgdrive = (strpos($videourl, 'drive.google.com') !== false);
 
-if ($isgdrive) {
-    preg_match('/[?&]id=([a-zA-Z0-9_-]+)/', $videourl, $idmatches);
-    $fileid = $idmatches[1] ?? '';
-    if (!empty($fileid)) {
-        $videourl = new moodle_url('/mod/videotrack/gdrive_proxy.php', ['id' => $fileid, 'cmid' => $cm->id]);
-        $videourl = $videourl->out(false);
-    }
-}
+// For Google Drive, lib.php already formats the URL as /preview.
+// We will pass $isgdrive to the template so it can render an iframe.
 
 if (!empty($videourl)) {
     if (stripos($videourl, 'youtube.com') !== false || stripos($videourl, 'youtu.be') !== false) {
@@ -144,6 +138,36 @@ $currentpercent = $progress ? (int)$progress->highestpercent : 0;
 $highesttime = ($progress && isset($progress->highesttime)) ? (int)$progress->highesttime : 0;
 $iscompleted = $progress ? (bool)$progress->iscompleted : false;
 
+// If it's a Google Drive iframe, we cannot track progress. 
+// Automatically mark as complete so students don't get stuck.
+if ($isgdrive && !$iscompleted) {
+    if (!$progress) {
+        $progress = new stdClass();
+        $progress->videotrackid = $videotrack->id;
+        $progress->userid = $USER->id;
+        $progress->highesttime = 0;
+        $progress->highestpercent = 100;
+        $progress->iscompleted = 1;
+        $progress->timecreated = time();
+        $progress->timemodified = time();
+        $DB->insert_record('videotrack_progress', $progress);
+    } else {
+        $progress->highestpercent = 100;
+        $progress->iscompleted = 1;
+        $progress->timemodified = time();
+        $DB->update_record('videotrack_progress', $progress);
+    }
+    
+    // Trigger Moodle completion API
+    $completion = new completion_info($course);
+    if ($completion->is_enabled($cm)) {
+        $completion->update_state($cm, COMPLETION_COMPLETE, $USER->id);
+    }
+    
+    $iscompleted = true;
+    $currentpercent = 100;
+}
+
 $isfree = ($videotrack->targetpercent <= 0);
 
 if ($iscompleted || $isfree) {
@@ -180,14 +204,17 @@ $templatecontext = [
     'resumebtntext' => get_string('resumebutton', 'mod_videotrack', $formattedtime),
 ];
 
-$PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
-    $cm->id,
-    $videotrack->targetpercent,
-    $isyoutube,
-    $ytid,
-    $currentpercent,
-    $highesttime,
-]);
+// Do not track progress for Google Drive iframes.
+if (!$isgdrive) {
+    $PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
+        $cm->id,
+        $videotrack->targetpercent,
+        $isyoutube,
+        $ytid,
+        $currentpercent,
+        $highesttime,
+    ]);
+}
 
 echo $OUTPUT->header();
 
