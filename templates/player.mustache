@@ -121,8 +121,9 @@
     <!-- Progress Interface -->
     <div class="mt-4 px-2">
         {{#isgdrive}}
-            <div class="alert alert-warning mt-3">
-                <i class="fa fa-info-circle mr-1"></i> Este es un video incrustado desde Google Drive. Debido a las políticas de seguridad de Google, <strong>el progreso y el tiempo de visualización no pueden ser rastreados automáticamente</strong>.
+            <div class="text-muted small mt-3" style="display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #f8f9fa; padding: 12px 16px; border-radius: 6px; border: 1px solid #e9ecef;">
+                <i class="fa fa-info-circle" style="color: #6c757d; font-size: 1.1em;"></i> 
+                <span>{{{ gdrivenotrack }}}</span>
             </div>
         {{/isgdrive}}
         {{^isgdrive}}

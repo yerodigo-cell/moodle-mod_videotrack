@@ -202,6 +202,7 @@ $templatecontext = [
         : get_string('progresshint', 'mod_videotrack', $videotrack->targetpercent),
     'successmsg' => get_string('successmsg', 'mod_videotrack'),
     'resumebtntext' => get_string('resumebutton', 'mod_videotrack', $formattedtime),
+    'gdrivenotrack' => get_string('gdrivenotrack', 'mod_videotrack'),
 ];
 
 // Do not track progress for Google Drive iframes.

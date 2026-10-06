@@ -56,3 +56,5 @@ $string['videofile_help'] = 'Sube tu archivo de video MP4 aquí. Nota: Si ingres
 $string['videotrack:addinstance'] = 'Añadir un nuevo VideoTrack';
 $string['videourl'] = 'URL del video (Externo)';
 $string['videourl_help'] = 'Pega aquí el enlace de YouTube o URL directa MP4. Si prefieres subir un archivo directamente a Moodle, deja esto en blanco y usa el subidor de archivos de abajo.';
+
+$string['gdrivenotrack'] = 'Este video está incrustado desde Google Drive. El rastreo de progreso no está disponible para este reproductor.';
