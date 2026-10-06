@@ -41,7 +41,7 @@ define(['jquery'], function($) {
                 var h = Math.floor(seconds / 3600);
                 var m = Math.floor((seconds % 3600) / 60);
                 var s = Math.floor(seconds % 60);
-                
+
                 if (h > 0 || forceHours) {
                     return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
                 } else {
@@ -158,11 +158,11 @@ define(['jquery'], function($) {
                     if (error && error.code === 4) {
                         errorMsg += " (SRC_NOT_SUPPORTED)";
                     }
-                    
-                    var errorDiv = $('<div style="position:absolute; top:50%; left:50%; ' + 
-                        'transform:translate(-50%, -50%); color:white; ' + 
-                        'background:rgba(255,0,0,0.8); padding:15px; ' + 
-                        'border-radius:5px; text-align:center; z-index:9999; ' + 
+
+                    var errorDiv = $('<div style="position:absolute; top:50%; left:50%; ' +
+                        'transform:translate(-50%, -50%); color:white; ' +
+                        'background:rgba(255,0,0,0.8); padding:15px; ' +
+                        'border-radius:5px; text-align:center; z-index:9999; ' +
                         'font-weight:bold;"></div>');
                     errorDiv.text(errorMsg);
                     $(wrapper).append(errorDiv);
