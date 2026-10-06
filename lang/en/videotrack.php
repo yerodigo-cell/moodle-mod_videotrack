@@ -28,6 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 $string['completed'] = 'Completed';
 $string['error_nouploadorurl'] = 'You must either provide a Video URL or upload a Video File.';
 $string['eventcoursemoduleviewed'] = 'VideoTrack course module viewed';
+$string['gdrivenotrack'] = 'This video is embedded from Google Drive. Progress tracking is disabled for this player.';
 $string['highestpercent'] = 'Highest Percent Watched';
 $string['lastaccess'] = 'Last Access';
 $string['modulename'] = 'VideoTrack';
@@ -59,4 +60,3 @@ $string['videotrack:viewreport'] = 'View progress report';
 $string['videourl'] = 'Video URL (External)';
 $string['videourl_help'] = 'Paste the YouTube link or a direct MP4 URL here. If you prefer to upload a file directly to Moodle, leave this blank and use the file uploader below.';
 
-$string['gdrivenotrack'] = 'This video is embedded from Google Drive. Progress tracking is disabled for this player.';

@@ -28,6 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 $string['completed'] = 'Completado';
 $string['error_nouploadorurl'] = 'Debes proveer una URL externa O subir un archivo de video local.';
 $string['eventcoursemoduleviewed'] = 'VideoTrack visualizado';
+$string['gdrivenotrack'] = 'Este video está incrustado desde Google Drive. El rastreo de progreso no está disponible para este reproductor.';
 $string['highestpercent'] = 'Mayor porcentaje visto';
 $string['lastaccess'] = 'Último acceso';
 $string['modulename'] = 'VideoTrack';
@@ -57,4 +58,3 @@ $string['videotrack:addinstance'] = 'Añadir un nuevo VideoTrack';
 $string['videourl'] = 'URL del video (Externo)';
 $string['videourl_help'] = 'Pega aquí el enlace de YouTube o URL directa MP4. Si prefieres subir un archivo directamente a Moodle, deja esto en blanco y usa el subidor de archivos de abajo.';
 
-$string['gdrivenotrack'] = 'Este video está incrustado desde Google Drive. El rastreo de progreso no está disponible para este reproductor.';
