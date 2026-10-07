@@ -40,7 +40,8 @@ class backup_videotrack_activity_structure_step extends backup_activity_structur
     protected function define_structure() {
         // XML structure element.
         $videotrack = new backup_nested_element('videotrack', ['id'], [
-            'course', 'name', 'intro', 'introformat', 'videourl', 'targetpercent', 'isgdrive', 'manualtime', 'timecreated', 'timemodified',
+            'course', 'name', 'intro', 'introformat', 'videourl', 'targetpercent',
+            'isgdrive', 'manualtime', 'timecreated', 'timemodified',
         ]);
 
         // Connect database table fields.

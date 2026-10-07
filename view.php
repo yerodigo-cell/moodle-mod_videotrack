@@ -138,12 +138,12 @@ $currentpercent = $progress ? (int)$progress->highestpercent : 0;
 $highesttime = ($progress && isset($progress->highesttime)) ? (int)$progress->highesttime : 0;
 $iscompleted = $progress ? (bool)$progress->iscompleted : false;
 
-$is_manual_track = !empty($videotrack->isgdrive);
-$manual_time = (int)($videotrack->manualtime ?? 0);
+$ismanualtrack = !empty($videotrack->isgdrive);
+$manualtime = (int)($videotrack->manualtime ?? 0);
 
 // If it's a Google Drive iframe, we cannot track progress natively.
 // Automatically mark as complete so students don't get stuck, UNLESS manual tracking is enabled.
-if ($isgdrive && !$is_manual_track && !$iscompleted) {
+if ($isgdrive && !$ismanualtrack && !$iscompleted) {
     if (!$progress) {
         $progress = new stdClass();
         $progress->videotrackid = $videotrack->id;
@@ -192,7 +192,7 @@ $templatecontext = [
     'videourl' => $videourl,
     'isyoutube' => $isyoutube,
     'isgdrive' => $isgdrive,
-    'showprogressbar' => (!$isgdrive || $is_manual_track),
+    'showprogressbar' => (!$isgdrive || $ismanualtrack),
     'ytid' => $ytid,
     'targetpercent' => $videotrack->targetpercent,
     'currentpercent' => $currentpercent,
@@ -211,7 +211,7 @@ $templatecontext = [
 ];
 
 // Do not track progress for Google Drive iframes unless manual track is enabled.
-if (!$isgdrive || $is_manual_track) {
+if (!$isgdrive || $ismanualtrack) {
     $PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
         $cm->id,
         $videotrack->targetpercent,
@@ -219,8 +219,8 @@ if (!$isgdrive || $is_manual_track) {
         $ytid,
         $currentpercent,
         $highesttime,
-        $is_manual_track,
-        $manual_time,
+        $ismanualtrack,
+        $manualtime,
     ]);
 }
 

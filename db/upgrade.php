@@ -78,7 +78,7 @@ function xmldb_videotrack_upgrade($oldversion): bool {
 
     if ($oldversion < 2026100600) {
         $table = new xmldb_table('videotrack');
-        
+
         $field1 = new xmldb_field('isgdrive', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'targetpercent');
         if (!$dbman->field_exists($table, $field1)) {
             $dbman->add_field($table, $field1);
