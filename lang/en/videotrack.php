@@ -59,3 +59,12 @@ $string['videotrack:view'] = 'View VideoTrack';
 $string['videotrack:viewreport'] = 'View progress report';
 $string['videourl'] = 'Video URL (External)';
 $string['videourl_help'] = 'Paste the YouTube link or a direct MP4 URL here. If you prefer to upload a file directly to Moodle, leave this blank and use the file uploader below.';
+
+$string['isgdrive'] = 'Enable manual time tracking (Google Drive)';
+$string['isgdrive_help'] = 'Check this box if you are embedding a Google Drive video or another player that does not support automatic tracking. It will calculate progress based on the time the student stays active on this page.';
+$string['manualtime'] = 'Total video duration (HH:MM:SS)';
+$string['manualtime_help'] = 'Enter the total duration of the video in hours, minutes, and seconds. The required time on the page will be calculated based on this and the Required Percentage field.';
+
+$string['manualresumehint'] = 'Your progress is saved at <strong>{$a}</strong>. Please play the video and manually fast-forward to this point.';
+
+$string['gdrivedisclaimer'] = 'For a better experience and accurate tracking, we strongly recommend uploading your video to YouTube or attaching the MP4 file directly to Moodle. Manual tracking for Google Drive is provided only as a fallback alternative.';

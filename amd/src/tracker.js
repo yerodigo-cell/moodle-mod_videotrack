@@ -23,7 +23,7 @@
 /* global YT */
 define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notification) {
     return {
-        init: function(cmid, targetPercent, isYouTube, videoId, currentPercent, highestTime) {
+        init: function(cmid, targetPercent, isYouTube, videoId, currentPercent, highestTime, isManualTrack, manualTime) {
             var highestPercent = currentPercent || 0;
             var lastSavedPercent = highestPercent;
             var lastSavedTime = highestTime || 0;
@@ -37,7 +37,9 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 var floorPercent = Math.floor(percent);
                 var currentTime = maxAllowedTime;
 
-                if (isYouTube && window.ytPlayer && window.ytPlayer.getCurrentTime) {
+                if (isManualTrack) {
+                    currentTime = maxAllowedTime;
+                } else if (isYouTube && window.ytPlayer && window.ytPlayer.getCurrentTime) {
                     var ytTime = window.ytPlayer.getCurrentTime();
                     if (isFreeNavigation || ytTime > maxAllowedTime) {
                         currentTime = ytTime;
@@ -88,6 +90,35 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 }
             };
 
+
+            if (isManualTrack && manualTime > 0) {
+                maxAllowedTime = lastSavedTime; // Restore saved seconds
+                setTimeout(function() {
+                    
+                    var manualTimer = setInterval(function() {
+                        if (document.hidden) {
+                            return; // Pause timer if tab is not visible
+                        }
+                        
+                        maxAllowedTime += 1; // 1 second elapsed
+                        var currentP = (maxAllowedTime / manualTime) * 100;
+                        updateUI(currentP);
+                        
+                        if (currentP >= targetPercent || currentP >= 100 || completed) {
+                            if (!completed) {
+                                // Reached the required time
+                                updateUI(Math.max(currentP, targetPercent));
+                                saveProgress(Math.max(currentP, targetPercent));
+                            }
+                            if (currentP >= 100) {
+                                clearInterval(manualTimer);
+                            }
+                        }
+                    }, 1000);
+                }, 1000); // Start 1 second after initialization
+                
+                return; // Stop here, don't execute native/YouTube trackers
+            }
 
             if (!isYouTube) {
                 var video = document.getElementById('videotrack-player');

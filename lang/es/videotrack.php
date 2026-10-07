@@ -57,3 +57,12 @@ $string['videofile_help'] = 'Sube tu archivo de video MP4 aquí. Nota: Si ingres
 $string['videotrack:addinstance'] = 'Añadir un nuevo VideoTrack';
 $string['videourl'] = 'URL del video (Externo)';
 $string['videourl_help'] = 'Pega aquí el enlace de YouTube o URL directa MP4. Si prefieres subir un archivo directamente a Moodle, deja esto en blanco y usa el subidor de archivos de abajo.';
+
+$string['isgdrive'] = 'Habilitar seguimiento de tiempo manual (Google Drive)';
+$string['isgdrive_help'] = 'Marca esta casilla si el video es de Google Drive o un reproductor que no soporta rastreo automático. El progreso se medirá según el tiempo que el estudiante mantenga activa la página.';
+$string['manualtime'] = 'Duración total del video (HH:MM:SS)';
+$string['manualtime_help'] = 'Ingresa la duración total del video en horas, minutos y segundos. El tiempo requerido en página se calculará con base en este valor y el Porcentaje requerido.';
+
+$string['manualresumehint'] = 'Tu progreso está guardado en <strong>{$a}</strong>. Por favor, dale a reproducir y adelanta el video manualmente hasta este punto.';
+
+$string['gdrivedisclaimer'] = 'Para una mejor experiencia y un seguimiento exacto, te recomendamos subir el video a YouTube o adjuntar el archivo MP4 directamente a Moodle. El seguimiento manual para Google Drive se ofrece solo como una alternativa de respaldo.';

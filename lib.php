@@ -100,6 +100,13 @@ function videotrack_add_instance($videotrack, $mform = null) {
         $videotrack->videourl = videotrack_process_video_url($videotrack->videourl);
     }
 
+    if (isset($videotrack->manualtime_h) || isset($videotrack->manualtime_m) || isset($videotrack->manualtime_s)) {
+        $h = (int)($videotrack->manualtime_h ?? 0);
+        $m = (int)($videotrack->manualtime_m ?? 0);
+        $s = (int)($videotrack->manualtime_s ?? 0);
+        $videotrack->manualtime = ($h * 3600) + ($m * 60) + $s;
+    }
+
     $id = $DB->insert_record('videotrack', $videotrack);
 
     if (isset($videotrack->video)) {
@@ -131,6 +138,13 @@ function videotrack_update_instance($videotrack, $mform = null) {
 
     if (!empty($videotrack->videourl)) {
         $videotrack->videourl = videotrack_process_video_url($videotrack->videourl);
+    }
+
+    if (isset($videotrack->manualtime_h) || isset($videotrack->manualtime_m) || isset($videotrack->manualtime_s)) {
+        $h = (int)($videotrack->manualtime_h ?? 0);
+        $m = (int)($videotrack->manualtime_m ?? 0);
+        $s = (int)($videotrack->manualtime_s ?? 0);
+        $videotrack->manualtime = ($h * 3600) + ($m * 60) + $s;
     }
 
     $DB->update_record('videotrack', $videotrack);

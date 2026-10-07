@@ -73,6 +73,33 @@ class mod_videotrack_mod_form extends moodleform_mod {
         $mform->addRule('targetpercent', 'Maximum 100', 'maxlength', 3, 'client');
         $mform->addHelpButton('targetpercent', 'targetpercent', 'mod_videotrack');
 
+        // New fields for Google Drive / manual tracking
+        $mform->addElement('checkbox', 'isgdrive', get_string('isgdrive', 'mod_videotrack'));
+        $mform->addHelpButton('isgdrive', 'isgdrive', 'mod_videotrack');
+        $mform->setDefault('isgdrive', 0);
+
+        $disclaimer_html = '<div class="alert alert-warning mt-1 mb-0 py-2" style="font-size: 0.9em; max-width: 600px;"><i class="fa fa-info-circle mr-1"></i> ' . get_string('gdrivedisclaimer', 'mod_videotrack') . '</div>';
+        $disclaimer_group = [$mform->createElement('static', 'gdrivedisclaimer_content', '', $disclaimer_html)];
+        $mform->addGroup($disclaimer_group, 'gdrivedisclaimer_group', ' ', '', false);
+        $mform->hideIf('gdrivedisclaimer_group', 'isgdrive', 'notchecked');
+
+        $timegrp = [];
+        $timegrp[] = $mform->createElement('text', 'manualtime_h', '', ['size' => 2, 'placeholder' => 'hh']);
+        $timegrp[] = $mform->createElement('static', 'sep1', '', ' : ');
+        $timegrp[] = $mform->createElement('text', 'manualtime_m', '', ['size' => 2, 'placeholder' => 'mm']);
+        $timegrp[] = $mform->createElement('static', 'sep2', '', ' : ');
+        $timegrp[] = $mform->createElement('text', 'manualtime_s', '', ['size' => 2, 'placeholder' => 'ss']);
+        
+        $mform->addGroup($timegrp, 'manualtime_group', get_string('manualtime', 'mod_videotrack'), ' ', false);
+        $mform->setType('manualtime_h', PARAM_INT);
+        $mform->setType('manualtime_m', PARAM_INT);
+        $mform->setType('manualtime_s', PARAM_INT);
+        $mform->setDefault('manualtime_h', 0);
+        $mform->setDefault('manualtime_m', 0);
+        $mform->setDefault('manualtime_s', 0);
+        $mform->addHelpButton('manualtime_group', 'manualtime', 'mod_videotrack');
+        $mform->hideIf('manualtime_group', 'isgdrive', 'notchecked');
+
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();
     }
@@ -94,6 +121,13 @@ class mod_videotrack_mod_form extends moodleform_mod {
                 ['subdirs' => 0, 'maxfiles' => 1]
             );
             $defaultvalues['video'] = $draftitemid;
+        }
+
+        if (isset($defaultvalues['manualtime'])) {
+            $t = (int)$defaultvalues['manualtime'];
+            $defaultvalues['manualtime_h'] = intdiv($t, 3600);
+            $defaultvalues['manualtime_m'] = intdiv($t % 3600, 60);
+            $defaultvalues['manualtime_s'] = $t % 60;
         }
     }
 

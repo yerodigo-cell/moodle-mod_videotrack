@@ -76,5 +76,21 @@ function xmldb_videotrack_upgrade($oldversion): bool {
         upgrade_mod_savepoint(true, 2026081501, 'videotrack');
     }
 
+    if ($oldversion < 2026100600) {
+        $table = new xmldb_table('videotrack');
+        
+        $field1 = new xmldb_field('isgdrive', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'targetpercent');
+        if (!$dbman->field_exists($table, $field1)) {
+            $dbman->add_field($table, $field1);
+        }
+
+        $field2 = new xmldb_field('manualtime', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'isgdrive');
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        upgrade_mod_savepoint(true, 2026100600, 'videotrack');
+    }
+
     return true;
 }

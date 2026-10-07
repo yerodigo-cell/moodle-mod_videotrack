@@ -138,9 +138,12 @@ $currentpercent = $progress ? (int)$progress->highestpercent : 0;
 $highesttime = ($progress && isset($progress->highesttime)) ? (int)$progress->highesttime : 0;
 $iscompleted = $progress ? (bool)$progress->iscompleted : false;
 
-// If it's a Google Drive iframe, we cannot track progress.
-// Automatically mark as complete so students don't get stuck.
-if ($isgdrive && !$iscompleted) {
+$is_manual_track = !empty($videotrack->isgdrive);
+$manual_time = (int)($videotrack->manualtime ?? 0);
+
+// If it's a Google Drive iframe, we cannot track progress natively.
+// Automatically mark as complete so students don't get stuck, UNLESS manual tracking is enabled.
+if ($isgdrive && !$is_manual_track && !$iscompleted) {
     if (!$progress) {
         $progress = new stdClass();
         $progress->videotrackid = $videotrack->id;
@@ -188,7 +191,8 @@ $templatecontext = [
     'cmid' => $cm->id,
     'videourl' => $videourl,
     'isyoutube' => $isyoutube,
-    'isgdrive' => (strpos($videourl, 'drive.google.com') !== false || strpos($videourl, 'drive.usercontent.google.com') !== false),
+    'isgdrive' => $isgdrive,
+    'showprogressbar' => (!$isgdrive || $is_manual_track),
     'ytid' => $ytid,
     'targetpercent' => $videotrack->targetpercent,
     'currentpercent' => $currentpercent,
@@ -202,11 +206,12 @@ $templatecontext = [
         : get_string('progresshint', 'mod_videotrack', $videotrack->targetpercent),
     'successmsg' => get_string('successmsg', 'mod_videotrack'),
     'resumebtntext' => get_string('resumebutton', 'mod_videotrack', $formattedtime),
+    'manualresumehint' => get_string('manualresumehint', 'mod_videotrack', $formattedtime),
     'gdrivenotrack' => get_string('gdrivenotrack', 'mod_videotrack'),
 ];
 
-// Do not track progress for Google Drive iframes.
-if (!$isgdrive) {
+// Do not track progress for Google Drive iframes unless manual track is enabled.
+if (!$isgdrive || $is_manual_track) {
     $PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
         $cm->id,
         $videotrack->targetpercent,
@@ -214,6 +219,8 @@ if (!$isgdrive) {
         $ytid,
         $currentpercent,
         $highesttime,
+        $is_manual_track,
+        $manual_time,
     ]);
 }
 
