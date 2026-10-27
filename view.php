@@ -55,10 +55,10 @@ $event->add_record_snapshot('course_modules', $cm);
 $event->add_record_snapshot('videotrack', $videotrack);
 $event->trigger();
 
-// Process video URL and check if it is a YouTube video (including Shorts).
+// Read the stored video URL directly (already resolved once on activity creation/update in lib.php).
+// Fixes mod_videotrack/VTRK-SEC-002: do not re-process or perform outbound HTTP requests on every view.
 $videourl = trim($videotrack->videourl ?? '');
 $videourl = html_entity_decode($videourl);
-$videourl = videotrack_process_video_url($videourl);
 $isyoutube = false;
 $ytid = '';
 $isgdrive = (strpos($videourl, 'drive.google.com') !== false);

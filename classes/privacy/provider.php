@@ -35,13 +35,14 @@ use core_privacy\local\request\writer;
  * Privacy provider.
  *
  * @package    mod_videotrack
- * @copyright   2026 EduPlugins Studio
+ * @copyright  2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements
     \core_privacy\local\metadata\provider,
     \core_privacy\local\request\core_userlist_provider,
     \core_privacy\local\request\plugin\provider {
+
     /**
      * Returns metadata about this system.
      *
@@ -52,10 +53,19 @@ class provider implements
         $collection->add_database_table('videotrack_progress', [
             'userid' => 'privacy:metadata:videotrack_progress:userid',
             'highestpercent' => 'privacy:metadata:videotrack_progress:highestpercent',
+            'highesttime' => 'privacy:metadata:videotrack_progress:highesttime',
             'iscompleted' => 'privacy:metadata:videotrack_progress:iscompleted',
             'timecreated' => 'privacy:metadata:videotrack_progress:timecreated',
             'timemodified' => 'privacy:metadata:videotrack_progress:timemodified',
         ], 'privacy:metadata:videotrack_progress');
+
+        // Added coverage for videotrack_reactions (Fixes mod_videotrack/VTRK-PRIV-001).
+        $collection->add_database_table('videotrack_reactions', [
+            'userid' => 'privacy:metadata:videotrack_reactions:userid',
+            'reaction' => 'privacy:metadata:videotrack_reactions:reaction',
+            'timeoffset' => 'privacy:metadata:videotrack_reactions:timeoffset',
+            'timecreated' => 'privacy:metadata:videotrack_reactions:timecreated',
+        ], 'privacy:metadata:videotrack_reactions');
 
         return $collection;
     }
@@ -69,13 +79,14 @@ class provider implements
     public static function get_contexts_for_userid(int $userid): contextlist {
         $contextlist = new contextlist();
 
-        $sql = "SELECT c.id
-                  FROM {context} c
-                  JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
-                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
-                  JOIN {videotrack} v ON v.id = cm.instance
-                  JOIN {videotrack_progress} vp ON vp.videotrackid = v.id
-                 WHERE vp.userid = :userid";
+        // 1. Contexts where the user has progress records.
+        $sqlprogress = "SELECT c.id
+                          FROM {context} c
+                          JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+                          JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                          JOIN {videotrack} v ON v.id = cm.instance
+                          JOIN {videotrack_progress} vp ON vp.videotrackid = v.id
+                         WHERE vp.userid = :userid";
 
         $params = [
             'contextlevel' => CONTEXT_MODULE,
@@ -83,7 +94,18 @@ class provider implements
             'userid' => $userid,
         ];
 
-        $contextlist->add_from_sql($sql, $params);
+        $contextlist->add_from_sql($sqlprogress, $params);
+
+        // 2. Contexts where the user has reaction records (Fixes mod_videotrack/VTRK-PRIV-001).
+        $sqlreactions = "SELECT c.id
+                           FROM {context} c
+                           JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+                           JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                           JOIN {videotrack} v ON v.id = cm.instance
+                           JOIN {videotrack_reactions} vr ON vr.videotrackid = v.id
+                          WHERE vr.userid = :userid";
+
+        $contextlist->add_from_sql($sqlreactions, $params);
 
         return $contextlist;
     }
@@ -100,19 +122,30 @@ class provider implements
             return;
         }
 
-        $sql = "SELECT vp.userid
-                  FROM {course_modules} cm
-                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
-                  JOIN {videotrack} v ON v.id = cm.instance
-                  JOIN {videotrack_progress} vp ON vp.videotrackid = v.id
-                 WHERE cm.id = :cmid";
-
         $params = [
             'modname' => 'videotrack',
             'cmid' => $context->instanceid,
         ];
 
-        $userlist->add_from_sql('userid', $sql, $params);
+        // 1. Users with progress records.
+        $sqlprogress = "SELECT vp.userid
+                          FROM {course_modules} cm
+                          JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                          JOIN {videotrack} v ON v.id = cm.instance
+                          JOIN {videotrack_progress} vp ON vp.videotrackid = v.id
+                         WHERE cm.id = :cmid";
+
+        $userlist->add_from_sql('userid', $sqlprogress, $params);
+
+        // 2. Users with reaction records (Fixes mod_videotrack/VTRK-PRIV-001).
+        $sqlreactions = "SELECT vr.userid
+                           FROM {course_modules} cm
+                           JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                           JOIN {videotrack} v ON v.id = cm.instance
+                           JOIN {videotrack_reactions} vr ON vr.videotrackid = v.id
+                          WHERE cm.id = :cmid";
+
+        $userlist->add_from_sql('userid', $sqlreactions, $params);
     }
 
     /**
@@ -131,32 +164,70 @@ class provider implements
 
         [$contextsql, $contextparams] = $DB->get_in_or_equal($contextlist->get_contextids(), SQL_PARAMS_NAMED);
 
-        $sql = "SELECT cm.id AS cmid, v.name, vp.highestpercent, vp.iscompleted, vp.timecreated, vp.timemodified
-                  FROM {context} c
-                  JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
-                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
-                  JOIN {videotrack} v ON v.id = cm.instance
-                  JOIN {videotrack_progress} vp ON vp.videotrackid = v.id
-                 WHERE c.id $contextsql AND vp.userid = :userid";
-
         $params = [
             'contextlevel' => CONTEXT_MODULE,
             'modname' => 'videotrack',
             'userid' => $userid,
         ] + $contextparams;
 
-        $records = $DB->get_records_sql($sql, $params);
+        // 1. Export progress records.
+        $sqlprogress = "SELECT vp.id, cm.id AS cmid, v.name, vp.highestpercent, vp.highesttime,
+                               vp.iscompleted, vp.timecreated, vp.timemodified
+                          FROM {context} c
+                          JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+                          JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                          JOIN {videotrack} v ON v.id = cm.instance
+                          JOIN {videotrack_progress} vp ON vp.videotrackid = v.id
+                         WHERE c.id $contextsql AND vp.userid = :userid";
 
-        foreach ($records as $record) {
+        $progressrecords = $DB->get_records_sql($sqlprogress, $params);
+
+        foreach ($progressrecords as $record) {
             $context = \context_module::instance($record->cmid);
             $data = (object) [
                 'highestpercent' => $record->highestpercent,
+                'highesttime' => $record->highesttime ?? 0,
                 'iscompleted' => $record->iscompleted,
-                'timecreated' => \core_privacy\local\request\transform::datetime($record->timecreated),
-                'timemodified' => \core_privacy\local\request\transform::datetime($record->timemodified),
+                'timecreated' => !empty($record->timecreated)
+                    ? \core_privacy\local\request\transform::datetime($record->timecreated)
+                    : null,
+                'timemodified' => !empty($record->timemodified)
+                    ? \core_privacy\local\request\transform::datetime($record->timemodified)
+                    : null,
             ];
 
             writer::with_context($context)->export_data([get_string('progresstitle', 'mod_videotrack')], $data);
+        }
+
+        // 2. Export reaction records (Fixes mod_videotrack/VTRK-PRIV-001).
+        $sqlreactions = "SELECT vr.id, cm.id AS cmid, vr.reaction, vr.timeoffset, vr.timecreated
+                           FROM {context} c
+                           JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+                           JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                           JOIN {videotrack} v ON v.id = cm.instance
+                           JOIN {videotrack_reactions} vr ON vr.videotrackid = v.id
+                          WHERE c.id $contextsql AND vr.userid = :userid
+                       ORDER BY vr.id ASC";
+
+        $reactionrecords = $DB->get_records_sql($sqlreactions, $params);
+
+        $reactionsbycm = [];
+        foreach ($reactionrecords as $record) {
+            $reactionsbycm[$record->cmid][] = (object) [
+                'reaction' => $record->reaction,
+                'timeoffset' => (int)$record->timeoffset,
+                'timecreated' => !empty($record->timecreated)
+                    ? \core_privacy\local\request\transform::datetime($record->timecreated)
+                    : null,
+            ];
+        }
+
+        foreach ($reactionsbycm as $cmid => $reactions) {
+            $context = \context_module::instance($cmid);
+            writer::with_context($context)->export_data(
+                ['reactions'],
+                (object)['reactions' => $reactions]
+            );
         }
     }
 
@@ -178,6 +249,7 @@ class provider implements
         }
 
         $DB->delete_records('videotrack_progress', ['videotrackid' => $cm->instance]);
+        $DB->delete_records('videotrack_reactions', ['videotrackid' => $cm->instance]);
     }
 
     /**
@@ -205,6 +277,11 @@ class provider implements
             }
 
             $DB->delete_records('videotrack_progress', [
+                'videotrackid' => $cm->instance,
+                'userid' => $userid,
+            ]);
+
+            $DB->delete_records('videotrack_reactions', [
                 'videotrackid' => $cm->instance,
                 'userid' => $userid,
             ]);
@@ -240,5 +317,6 @@ class provider implements
         $params = ['videotrackid' => $cm->instance] + $userparams;
 
         $DB->delete_records_select('videotrack_progress', "videotrackid = :videotrackid AND userid $usersql", $params);
+        $DB->delete_records_select('videotrack_reactions', "videotrackid = :videotrackid AND userid $usersql", $params);
     }
 }

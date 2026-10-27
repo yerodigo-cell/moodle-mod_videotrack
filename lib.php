@@ -22,38 +22,65 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+/**
+ * Checks whether a URL belongs strictly to an allowed HTTPS HeyGen host.
+ *
+ * @param string $url The URL to validate.
+ * @return bool True if the URL uses HTTPS and its host is on the allowlist.
+ */
+function videotrack_is_allowed_heygen_url(string $url): bool {
+    $parts = parse_url($url);
+    if (!is_array($parts)) {
+        return false;
+    }
+
+    $allowed = ['app.heygen.com'];
+    return !empty($parts['scheme'])
+        && strtolower($parts['scheme']) === 'https'
+        && !empty($parts['host'])
+        && in_array(strtolower($parts['host']), $allowed, true);
+}
 
 /**
  * Tries to extract a direct, public mp4 link from a HeyGen URL.
  * It targets the resource2.heygen.ai CDN which hosts public transcoded videos.
  *
+ * Fixes mod_videotrack/VTRK-SEC-002: validates exact host against an HTTPS allowlist
+ * and disables following redirects to untrusted hosts.
+ *
  * @param string $url The original URL
+ * @param curl|null $curlclient Optional curl instance (for unit testing/mocking)
  * @return string The mp4 URL if found, otherwise the original URL.
  */
-function videotrack_extract_heygen_url($url) {
-    if (strpos($url, 'app.heygen.com') !== false) {
-        global $CFG;
-        require_once($CFG->libdir . '/filelib.php');
-        $curl = new curl();
-        $curl->setopt([
-            'CURLOPT_USERAGENT' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' .
-                                   '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'CURLOPT_TIMEOUT' => 10,
-        ]);
-        $content = $curl->get($url);
+function videotrack_extract_heygen_url($url, ?curl $curlclient = null) {
+    if (!is_string($url) || !videotrack_is_allowed_heygen_url($url)) {
+        return $url;
+    }
 
-        // Search specifically for the public transcoded videos on resource2.heygen.ai.
-        if (preg_match_all('/https:\/\/resource2\.heygen\.ai[^"\'<>]+?\.mp4/i', $content, $matches)) {
-            if (!empty($matches[0])) {
-                $extracted = $matches[0][0];
-                $extracted = str_replace('\u0026', '&', $extracted);
-                return $extracted; // Return the public .mp4 link found.
-            }
+    global $CFG;
+    require_once($CFG->libdir . '/filelib.php');
+
+    $curl = $curlclient ?? new curl();
+    $curl->setopt([
+        'CURLOPT_USERAGENT' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' .
+            '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'CURLOPT_TIMEOUT' => 10,
+        'CURLOPT_FOLLOWLOCATION' => false,
+        'CURLOPT_MAXREDIRS' => 0,
+    ]);
+    $content = $curl->get($url);
+
+    // Search specifically for the public transcoded videos on resource2.heygen.ai.
+    if (is_string($content) && preg_match_all('/https:\/\/resource2\.heygen\.ai[^"\'<>]+?\.mp4/i', $content, $matches)) {
+        if (!empty($matches[0])) {
+            $extracted = $matches[0][0];
+            $extracted = str_replace('\u0026', '&', $extracted);
+            return $extracted; // Return the public .mp4 link found.
         }
     }
+
     return $url;
 }
-
 
 /**
  * Processes the video URL to extract direct links for supported platforms.
@@ -62,10 +89,10 @@ function videotrack_extract_heygen_url($url) {
  * @return string The processed URL
  */
 function videotrack_process_video_url($url) {
-    // 1. Process HeyGen URLs
+    // 1. Process HeyGen URLs.
     $url = videotrack_extract_heygen_url($url);
 
-    // 2. Process Google Drive URLs
+    // 2. Process Google Drive URLs.
     if (strpos($url, 'drive.google.com') !== false) {
         $fileid = '';
         if (preg_match('/\/file\/d\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
@@ -82,7 +109,6 @@ function videotrack_process_video_url($url) {
 
     return $url;
 }
-
 
 /**
  * Add a new instance of the videotrack activity.
@@ -166,6 +192,8 @@ function videotrack_update_instance($videotrack, $mform = null) {
 /**
  * Delete an instance of the videotrack activity.
  *
+ * Fixes mod_videotrack/VTRK-PRIV-001: also deletes records from videotrack_reactions.
+ *
  * @param int $id The ID of the instance.
  * @return bool True on success.
  */
@@ -178,6 +206,7 @@ function videotrack_delete_instance($id) {
     }
 
     $DB->delete_records('videotrack_progress', ['videotrackid' => $videotrack->id]);
+    $DB->delete_records('videotrack_reactions', ['videotrackid' => $videotrack->id]);
 
     // Get the CM and delete files BEFORE deleting the videotrack record.
     $cm = get_coursemodule_from_instance('videotrack', $id);
