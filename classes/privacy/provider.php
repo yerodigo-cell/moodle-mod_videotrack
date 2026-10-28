@@ -42,7 +42,6 @@ class provider implements
     \core_privacy\local\metadata\provider,
     \core_privacy\local\request\core_userlist_provider,
     \core_privacy\local\request\plugin\provider {
-
     /**
      * Returns metadata about this system.
      *
@@ -59,7 +58,7 @@ class provider implements
             'timemodified' => 'privacy:metadata:videotrack_progress:timemodified',
         ], 'privacy:metadata:videotrack_progress');
 
-        // Added coverage for videotrack_reactions (Fixes mod_videotrack/VTRK-PRIV-001).
+        // Closes mod_videotrack/VTRK-PRIV-001: declare user reactions metadata.
         $collection->add_database_table('videotrack_reactions', [
             'userid' => 'privacy:metadata:videotrack_reactions:userid',
             'reaction' => 'privacy:metadata:videotrack_reactions:reaction',
@@ -79,7 +78,6 @@ class provider implements
     public static function get_contexts_for_userid(int $userid): contextlist {
         $contextlist = new contextlist();
 
-        // 1. Contexts where the user has progress records.
         $sqlprogress = "SELECT c.id
                           FROM {context} c
                           JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
@@ -96,7 +94,7 @@ class provider implements
 
         $contextlist->add_from_sql($sqlprogress, $params);
 
-        // 2. Contexts where the user has reaction records (Fixes mod_videotrack/VTRK-PRIV-001).
+        // Include contexts where the user has recorded video reactions (VTRK-PRIV-001).
         $sqlreactions = "SELECT c.id
                            FROM {context} c
                            JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
@@ -127,7 +125,6 @@ class provider implements
             'cmid' => $context->instanceid,
         ];
 
-        // 1. Users with progress records.
         $sqlprogress = "SELECT vp.userid
                           FROM {course_modules} cm
                           JOIN {modules} m ON m.id = cm.module AND m.name = :modname
@@ -137,7 +134,7 @@ class provider implements
 
         $userlist->add_from_sql('userid', $sqlprogress, $params);
 
-        // 2. Users with reaction records (Fixes mod_videotrack/VTRK-PRIV-001).
+        // Include users with reactions in this activity context (VTRK-PRIV-001).
         $sqlreactions = "SELECT vr.userid
                            FROM {course_modules} cm
                            JOIN {modules} m ON m.id = cm.module AND m.name = :modname
@@ -171,7 +168,7 @@ class provider implements
         ] + $contextparams;
 
         // 1. Export progress records.
-        $sqlprogress = "SELECT vp.id, cm.id AS cmid, v.name, vp.highestpercent, vp.highesttime,
+        $sqlprogress = "SELECT cm.id AS cmid, v.name, vp.highestpercent, vp.highesttime,
                                vp.iscompleted, vp.timecreated, vp.timemodified
                           FROM {context} c
                           JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
@@ -180,26 +177,22 @@ class provider implements
                           JOIN {videotrack_progress} vp ON vp.videotrackid = v.id
                          WHERE c.id $contextsql AND vp.userid = :userid";
 
-        $progressrecords = $DB->get_records_sql($sqlprogress, $params);
+        $records = $DB->get_records_sql($sqlprogress, $params);
 
-        foreach ($progressrecords as $record) {
+        foreach ($records as $record) {
             $context = \context_module::instance($record->cmid);
             $data = (object) [
                 'highestpercent' => $record->highestpercent,
-                'highesttime' => $record->highesttime ?? 0,
+                'highesttime' => $record->highesttime,
                 'iscompleted' => $record->iscompleted,
-                'timecreated' => !empty($record->timecreated)
-                    ? \core_privacy\local\request\transform::datetime($record->timecreated)
-                    : null,
-                'timemodified' => !empty($record->timemodified)
-                    ? \core_privacy\local\request\transform::datetime($record->timemodified)
-                    : null,
+                'timecreated' => \core_privacy\local\request\transform::datetime($record->timecreated),
+                'timemodified' => \core_privacy\local\request\transform::datetime($record->timemodified),
             ];
 
             writer::with_context($context)->export_data([get_string('progresstitle', 'mod_videotrack')], $data);
         }
 
-        // 2. Export reaction records (Fixes mod_videotrack/VTRK-PRIV-001).
+        // 2. Export reaction records (VTRK-PRIV-001).
         $sqlreactions = "SELECT vr.id, cm.id AS cmid, vr.reaction, vr.timeoffset, vr.timecreated
                            FROM {context} c
                            JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
@@ -209,24 +202,22 @@ class provider implements
                           WHERE c.id $contextsql AND vr.userid = :userid
                        ORDER BY vr.id ASC";
 
-        $reactionrecords = $DB->get_records_sql($sqlreactions, $params);
-
+        $reactions = $DB->get_records_sql($sqlreactions, $params);
         $reactionsbycm = [];
-        foreach ($reactionrecords as $record) {
-            $reactionsbycm[$record->cmid][] = (object) [
-                'reaction' => $record->reaction,
-                'timeoffset' => (int)$record->timeoffset,
-                'timecreated' => !empty($record->timecreated)
-                    ? \core_privacy\local\request\transform::datetime($record->timecreated)
-                    : null,
+
+        foreach ($reactions as $reaction) {
+            $reactionsbycm[$reaction->cmid][] = (object) [
+                'reaction' => $reaction->reaction,
+                'timeoffset' => (int) $reaction->timeoffset,
+                'timecreated' => \core_privacy\local\request\transform::datetime($reaction->timecreated),
             ];
         }
 
-        foreach ($reactionsbycm as $cmid => $reactions) {
+        foreach ($reactionsbycm as $cmid => $items) {
             $context = \context_module::instance($cmid);
             writer::with_context($context)->export_data(
                 ['reactions'],
-                (object)['reactions' => $reactions]
+                (object) ['reactions' => $items]
             );
         }
     }
@@ -280,7 +271,6 @@ class provider implements
                 'videotrackid' => $cm->instance,
                 'userid' => $userid,
             ]);
-
             $DB->delete_records('videotrack_reactions', [
                 'videotrackid' => $cm->instance,
                 'userid' => $userid,
