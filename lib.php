@@ -124,6 +124,7 @@ function videotrack_inject_course_js(int $courseid): void {
         }
 
         $items = [];
+        $preloadrules = [];
         foreach ($cms as $instanceid => $cminfo) {
             if (!$cminfo->uservisible || !isset($records[$instanceid])) {
                 continue;
@@ -134,18 +135,32 @@ function videotrack_inject_course_js(int $courseid): void {
             $accent = ($rawaccent !== '') ? $rawaccent : '#0ea5e9';
             $prog = $DB->get_record('videotrack_progress', ['videotrackid' => $vt->id, 'userid' => $USER->id]);
             $pct = $prog ? (int)$prog->highestpercent : 0;
+            $cid = (int)$cminfo->id;
 
-            $items[(int)$cminfo->id] = [
-                'cmid' => (int)$cminfo->id,
+            $items[$cid] = [
+                'cmid' => $cid,
                 'mode' => $mode,
                 'name' => format_string($vt->name),
                 'accent' => $accent,
                 'pct' => $pct,
                 'watchlabel' => get_string('watchvideo', 'mod_videotrack'),
                 'progresslabel' => get_string('progresstitle', 'mod_videotrack'),
-                'popupurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cminfo->id, 'inpopup' => 1]))->out(false),
-                'embedurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cminfo->id, 'embed' => 1]))->out(false),
+                'popupurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cid, 'inpopup' => 1]))->out(false),
+                'embedurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cid, 'embed' => 1]))->out(false),
             ];
+
+            if ($mode === 2) {
+                $preloadrules[] = 'body:not(.editing) #module-' . $cid . ':not(.subtile) .activityiconcontainer,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-icon,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-name-area,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activityname,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-instance' .
+                    '{display:none!important;}' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-altcontent,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .description,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-description' .
+                    '{border-top:0!important;padding-top:0!important;margin-top:0!important;}';
+            }
         }
 
         if (empty($items)) {
@@ -156,179 +171,197 @@ function videotrack_inject_course_js(int $courseid): void {
         $PAGE->requires->css(new moodle_url('/mod/videotrack/styles.css'));
 
         $json = json_encode($items);
+        $preloadcss = json_encode(implode('', $preloadrules));
+
         $js = '(function(){' .
             'window.vtCourseItems=' . $json . ';' .
+            'var preCss=' . $preloadcss . ';' .
+            'if(preCss&&!document.getElementById("vt-inline-clean-style")){' .
+            'var stEl=document.createElement("style");' .
+            'stEl.id="vt-inline-clean-style";' .
+            'stEl.textContent=preCss;' .
+            'document.head.appendChild(stEl);' .
+            '}' .
             'window.addEventListener("message",function(e){' .
-                'if(e.data&&e.data.type==="vt-resize"){' .
-                    'var f=document.getElementById("vt-inline-iframe-"+e.data.cmid);' .
-                    'if(f&&e.data.height>200){f.style.height=e.data.height+"px";}' .
-                '}' .
+            'if(e.data&&e.data.type==="vt-resize"){' .
+            'var f=document.getElementById("vt-inline-iframe-"+e.data.cmid);' .
+            'if(f&&e.data.height>200){f.style.height=e.data.height+"px";}' .
+            '}' .
             '},false);' .
             'window.videotrackClosePopup=function(){' .
-                'var modals=document.querySelectorAll(".vt-course-modal-backdrop");' .
-                'for(var i=0;i<modals.length;i++){' .
-                    'var m=modals[i];' .
-                    'if(m.style.display!=="none"){' .
-                        'var ifr=m.querySelector("iframe");' .
-                        'if(ifr){' .
-                            'try{' .
-                                'var doc=ifr.contentWindow?ifr.contentWindow.document:null;' .
-                                'var pctEl=doc?doc.getElementById("vt-progress-text"):null;' .
-                                'var cmid=m.id?parseInt(m.id.replace("vt-popup-modal-",""),10):0;' .
-                                'if(pctEl&&cmid&&window.vtCourseItems&&window.vtCourseItems[cmid]){' .
-                                    'var newPct=parseInt(pctEl.textContent,10);' .
-                                    'if(!isNaN(newPct)){' .
-                                        'window.vtCourseItems[cmid].pct=newPct;' .
-                                        'var li=document.getElementById("module-"+cmid);' .
-                                        'if(li){' .
-                                            'var st=li.querySelector(".vt-subtile-progress-meta strong, .vt-course-card-progress-top strong");' .
-                                            'if(st)st.textContent=newPct+"%";' .
-                                            'var fl=li.querySelector(".vt-subtile-progress-fill, .vt-course-card-bar > div");' .
-                                            'if(fl)fl.style.width=newPct+"%";' .
-                                        '}' .
-                                    '}' .
-                                '}' .
-                            '}catch(err){}' .
-                            'ifr.src="about:blank";' .
-                        '}' .
-                        'm.style.display="none";' .
-                    '}' .
-                '}' .
-                'document.body.style.overflow="";' .
+            'var modals=document.querySelectorAll(".vt-course-modal-backdrop");' .
+            'for(var i=0;i<modals.length;i++){' .
+            'var m=modals[i];' .
+            'if(m.style.display!=="none"){' .
+            'var ifr=m.querySelector("iframe");' .
+            'if(ifr){' .
+            'try{' .
+            'var doc=ifr.contentWindow?ifr.contentWindow.document:null;' .
+            'var pctEl=doc?doc.getElementById("vt-progress-text"):null;' .
+            'var cmid=m.id?parseInt(m.id.replace("vt-popup-modal-",""),10):0;' .
+            'if(pctEl&&cmid&&window.vtCourseItems&&window.vtCourseItems[cmid]){' .
+            'var newPct=parseInt(pctEl.textContent,10);' .
+            'if(!isNaN(newPct)){' .
+            'window.vtCourseItems[cmid].pct=newPct;' .
+            'var li=document.getElementById("module-"+cmid);' .
+            'if(li){' .
+            'var st=li.querySelector(".vt-subtile-progress-meta strong, .vt-course-card-progress-top strong");' .
+            'if(st)st.textContent=newPct+"%";' .
+            'var fl=li.querySelector(".vt-subtile-progress-fill, .vt-course-card-bar > div");' .
+            'if(fl)fl.style.width=newPct+"%";' .
+            '}' .
+            '}' .
+            '}' .
+            '}catch(err){}' .
+            'ifr.src="about:blank";' .
+            '}' .
+            'm.style.display="none";' .
+            '}' .
+            '}' .
+            'document.body.style.overflow="";' .
             '};' .
             'window.videotrackOpenPopup=function(cmid,url,title){' .
-                'var cfg=window.vtCourseItems&&window.vtCourseItems[cmid]?window.vtCourseItems[cmid]:null;' .
-                'var finalUrl=cfg?cfg.popupurl:url;' .
-                'var finalTitle=cfg?cfg.name:(title||"");' .
-                'var m=document.getElementById("vt-popup-modal-"+cmid);' .
-                'if(!m){' .
-                    'm=document.createElement("div");' .
-                    'm.id="vt-popup-modal-"+cmid;' .
-                    'm.className="vt-course-modal-backdrop";' .
-                    'm.style.display="none";' .
-                    'var dlg=document.createElement("div");' .
-                    'dlg.className="vt-course-modal-dialog";' .
-                    'var hdr=document.createElement("div");' .
-                    'hdr.className="vt-course-modal-header";' .
-                    'var ttl=document.createElement("span");' .
-                    'ttl.className="vt-course-modal-title";' .
-                    'var cls=document.createElement("button");' .
-                    'cls.type="button";' .
-                    'cls.className="vt-course-modal-close";' .
-                    'cls.innerHTML="&times;";' .
-                    'hdr.appendChild(ttl);' .
-                    'hdr.appendChild(cls);' .
-                    'var bdy=document.createElement("div");' .
-                    'bdy.className="vt-course-modal-body";' .
-                    'var ifr=document.createElement("iframe");' .
-                    'ifr.id="vt-popup-iframe-"+cmid;' .
-                    'ifr.src="about:blank";' .
-                    'ifr.setAttribute("allowfullscreen","true");' .
-                    'ifr.setAttribute("allow","autoplay; fullscreen");' .
-                    'bdy.appendChild(ifr);' .
-                    'dlg.appendChild(hdr);' .
-                    'dlg.appendChild(bdy);' .
-                    'm.appendChild(dlg);' .
-                    'document.body.appendChild(m);' .
-                '}else if(m.parentNode!==document.body){' .
-                    'document.body.appendChild(m);' .
-                '}' .
-                'var t=m.querySelector(".vt-course-modal-title");' .
-                'if(t)t.textContent=finalTitle;' .
-                'var f=m.querySelector("iframe")||document.getElementById("vt-popup-iframe-"+cmid);' .
-                'if(f)f.src=finalUrl;' .
-                'm.style.display="flex";' .
-                'document.body.style.overflow="hidden";' .
-                'return false;' .
+            'var cfg=window.vtCourseItems&&window.vtCourseItems[cmid]?window.vtCourseItems[cmid]:null;' .
+            'var finalUrl=cfg?cfg.popupurl:url;' .
+            'var finalTitle=cfg?cfg.name:(title||"");' .
+            'var m=document.getElementById("vt-popup-modal-"+cmid);' .
+            'if(!m){' .
+            'm=document.createElement("div");' .
+            'm.id="vt-popup-modal-"+cmid;' .
+            'm.className="vt-course-modal-backdrop";' .
+            'm.style.display="none";' .
+            'var dlg=document.createElement("div");' .
+            'dlg.className="vt-course-modal-dialog";' .
+            'var hdr=document.createElement("div");' .
+            'hdr.className="vt-course-modal-header";' .
+            'var ttl=document.createElement("span");' .
+            'ttl.className="vt-course-modal-title";' .
+            'var cls=document.createElement("button");' .
+            'cls.type="button";' .
+            'cls.className="vt-course-modal-close";' .
+            'cls.innerHTML="&times;";' .
+            'hdr.appendChild(ttl);' .
+            'hdr.appendChild(cls);' .
+            'var bdy=document.createElement("div");' .
+            'bdy.className="vt-course-modal-body";' .
+            'var ifr=document.createElement("iframe");' .
+            'ifr.id="vt-popup-iframe-"+cmid;' .
+            'ifr.src="about:blank";' .
+            'ifr.setAttribute("allowfullscreen","true");' .
+            'ifr.setAttribute("allow","autoplay; fullscreen");' .
+            'bdy.appendChild(ifr);' .
+            'dlg.appendChild(hdr);' .
+            'dlg.appendChild(bdy);' .
+            'm.appendChild(dlg);' .
+            'document.body.appendChild(m);' .
+            '}else if(m.parentNode!==document.body){' .
+            'document.body.appendChild(m);' .
+            '}' .
+            'var t=m.querySelector(".vt-course-modal-title");' .
+            'if(t)t.textContent=finalTitle;' .
+            'var f=m.querySelector("iframe")||document.getElementById("vt-popup-iframe-"+cmid);' .
+            'if(f)f.src=finalUrl;' .
+            'm.style.display="flex";' .
+            'document.body.style.overflow="hidden";' .
+            'return false;' .
             '};' .
             'var findModuleLi=function(cmid){' .
-                'var el=document.getElementById("module-"+cmid);' .
-                'if(el)return el;' .
-                'var list=document.querySelectorAll("li.activity.videotrack");' .
-                'for(var i=0;i<list.length;i++){' .
-                    'if(list[i].dataset&&String(list[i].dataset.cmid)===String(cmid))return list[i];' .
-                '}' .
-                'return null;' .
+            'var el=document.getElementById("module-"+cmid);' .
+            'if(el)return el;' .
+            'var list=document.querySelectorAll("li.activity.videotrack");' .
+            'for(var i=0;i<list.length;i++){' .
+            'if(list[i].dataset&&String(list[i].dataset.cmid)===String(cmid))return list[i];' .
+            '}' .
+            'return null;' .
             '};' .
             'var upgradeTilesSubtiles=function(){' .
-                'if(!window.vtCourseItems||document.body.classList.contains("editing"))return;' .
-                'Object.keys(window.vtCourseItems).forEach(function(cmid){' .
-                    'var cfg=window.vtCourseItems[cmid];' .
-                    'var li=findModuleLi(cmid);' .
-                    'if(!li||li.dataset.vtUpgraded==="1")return;' .
-                    'if(!li.classList.contains("subtile"))return;' .
-                    'if(cfg.mode===2){' .
-                        'li.dataset.vtUpgraded="1";' .
-                        'li.classList.remove("subtile");' .
-                        'li.classList.add("vt-tiles-fullwidth-row");' .
-                        'if(li.parentNode){li.parentNode.appendChild(li);}' .
-                        'var wrap=document.createElement("div");' .
-                        'wrap.className="vt-course-inline-embed";' .
-                        'var ifr=document.createElement("iframe");' .
-                        'ifr.id="vt-inline-iframe-"+cmid;' .
-                        'ifr.src=cfg.embedurl;' .
-                        'ifr.className="vt-course-inline-iframe";' .
-                        'ifr.setAttribute("allowfullscreen","true");' .
-                        'ifr.setAttribute("allow","autoplay; fullscreen");' .
-                        'ifr.setAttribute("scrolling","no");' .
-                        'wrap.appendChild(ifr);' .
-                        'li.innerHTML="";' .
-                        'li.appendChild(wrap);' .
-                    '}else{' .
-                        'li.dataset.vtUpgraded="1";' .
-                        'li.classList.add("vt-enhanced-subtile");' .
-                        'li.style.setProperty("--vt-accent",cfg.accent);' .
-                        'var bar=document.createElement("div");' .
-                        'bar.className="vt-subtile-progress-wrap";' .
-                        'var meta=document.createElement("div");' .
-                        'meta.className="vt-subtile-progress-meta";' .
-                        'var sp=document.createElement("span");' .
-                        'sp.className="vt-subtile-video-title";' .
-                        'sp.textContent=cfg.name;' .
-                        'sp.title=cfg.name;' .
-                        'var st=document.createElement("strong");' .
-                        'st.textContent=cfg.pct+"%";' .
-                        'meta.appendChild(sp);' .
-                        'meta.appendChild(st);' .
-                        'var tr=document.createElement("div");' .
-                        'tr.className="vt-subtile-progress-track";' .
-                        'var fl=document.createElement("div");' .
-                        'fl.className="vt-subtile-progress-fill";' .
-                        'fl.style.width=cfg.pct+"%";' .
-                        'tr.appendChild(fl);' .
-                        'bar.appendChild(meta);' .
-                        'bar.appendChild(tr);' .
-                        'li.appendChild(bar);' .
-                    '}' .
-                '});' .
+            'if(!window.vtCourseItems)return;' .
+            'var isEditing=document.body.classList.contains("editing");' .
+            'Object.keys(window.vtCourseItems).forEach(function(cmid){' .
+            'var cfg=window.vtCourseItems[cmid];' .
+            'var li=findModuleLi(cmid);' .
+            'if(!li)return;' .
+            'if(!li.classList.contains("subtile")){' .
+            'if(cfg.mode===2&&!li.classList.contains("vt-mode-inline-embed")){' .
+            'li.classList.add("vt-mode-inline-embed");' .
+            '}else if(cfg.mode===1&&!li.classList.contains("vt-mode-card-popup")){' .
+            'li.classList.add("vt-mode-card-popup");' .
+            '}' .
+            'return;' .
+            '}' .
+            'if(isEditing||li.dataset.vtUpgraded==="1")return;' .
+            'if(cfg.mode===2){' .
+            'li.dataset.vtUpgraded="1";' .
+            'li.classList.remove("subtile");' .
+            'li.classList.add("vt-tiles-fullwidth-row");' .
+            'if(li.parentNode){li.parentNode.appendChild(li);}' .
+            'var wrap=document.createElement("div");' .
+            'wrap.className="vt-course-inline-embed";' .
+            'var ifr=document.createElement("iframe");' .
+            'ifr.id="vt-inline-iframe-"+cmid;' .
+            'ifr.src=cfg.embedurl;' .
+            'ifr.className="vt-course-inline-iframe";' .
+            'ifr.setAttribute("allowfullscreen","true");' .
+            'ifr.setAttribute("allow","autoplay; fullscreen");' .
+            'ifr.setAttribute("scrolling","no");' .
+            'wrap.appendChild(ifr);' .
+            'li.innerHTML="";' .
+            'li.appendChild(wrap);' .
+            '}else{' .
+            'li.dataset.vtUpgraded="1";' .
+            'li.classList.add("vt-enhanced-subtile");' .
+            'li.style.setProperty("--vt-accent",cfg.accent);' .
+            'var bar=document.createElement("div");' .
+            'bar.className="vt-subtile-progress-wrap";' .
+            'var meta=document.createElement("div");' .
+            'meta.className="vt-subtile-progress-meta";' .
+            'var sp=document.createElement("span");' .
+            'sp.className="vt-subtile-video-title";' .
+            'sp.textContent=cfg.name;' .
+            'sp.title=cfg.name;' .
+            'var st=document.createElement("strong");' .
+            'st.textContent=cfg.pct+"%";' .
+            'meta.appendChild(sp);' .
+            'meta.appendChild(st);' .
+            'var tr=document.createElement("div");' .
+            'tr.className="vt-subtile-progress-track";' .
+            'var fl=document.createElement("div");' .
+            'fl.className="vt-subtile-progress-fill";' .
+            'fl.style.width=cfg.pct+"%";' .
+            'tr.appendChild(fl);' .
+            'bar.appendChild(meta);' .
+            'bar.appendChild(tr);' .
+            'li.appendChild(bar);' .
+            '}' .
+            '});' .
             '};' .
             'document.addEventListener("click",function(ev){' .
-                'if(ev.target.closest(".vt-course-modal-close")||ev.target.classList.contains("vt-course-modal-backdrop")){' .
-                    'ev.preventDefault();' .
-                    'ev.stopPropagation();' .
-                    'window.videotrackClosePopup();' .
-                    'return;' .
-                '}' .
-                'if(!window.vtCourseItems||document.body.classList.contains("editing"))return;' .
-                'var li=ev.target.closest("li.activity.videotrack");' .
-                'if(!li)return;' .
-                'if(ev.target.closest(".activity-actions, .editing, .dropdown, .cm-edit-action, .completioncheckbox, [data-action]"))return;' .
-                'var cmid=0;' .
-                'if(li.id&&li.id.indexOf("module-")===0){cmid=parseInt(li.id.replace("module-",""),10);}' .
-                'if(!cmid&&li.dataset&&li.dataset.cmid){cmid=parseInt(li.dataset.cmid,10);}' .
-                'if(cmid&&window.vtCourseItems[cmid]&&window.vtCourseItems[cmid].mode===1){' .
-                    'ev.preventDefault();' .
-                    'ev.stopPropagation();' .
-                    'if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();' .
-                    'window.videotrackOpenPopup(cmid);' .
-                '}' .
+            'if(ev.target.closest(".vt-course-modal-close")||ev.target.classList.contains("vt-course-modal-backdrop")){' .
+            'ev.preventDefault();' .
+            'ev.stopPropagation();' .
+            'window.videotrackClosePopup();' .
+            'return;' .
+            '}' .
+            'if(!window.vtCourseItems||document.body.classList.contains("editing"))return;' .
+            'var li=ev.target.closest("li.activity.videotrack");' .
+            'if(!li)return;' .
+            'if(ev.target.closest(".activity-actions, .editing, .dropdown, .cm-edit-action, .completioncheckbox, [data-action]"))return;' .
+            'var cmid=0;' .
+            'if(li.id&&li.id.indexOf("module-")===0){cmid=parseInt(li.id.replace("module-",""),10);}' .
+            'if(!cmid&&li.dataset&&li.dataset.cmid){cmid=parseInt(li.dataset.cmid,10);}' .
+            'if(cmid&&window.vtCourseItems[cmid]&&window.vtCourseItems[cmid].mode===1){' .
+            'ev.preventDefault();' .
+            'ev.stopPropagation();' .
+            'if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();' .
+            'window.videotrackOpenPopup(cmid);' .
+            '}' .
             '},true);' .
             'document.addEventListener("keydown",function(ev){' .
-                'if(ev.key==="Escape"||ev.keyCode===27){window.videotrackClosePopup();}' .
+            'if(ev.key==="Escape"||ev.keyCode===27){window.videotrackClosePopup();}' .
             '});' .
             'upgradeTilesSubtiles();' .
             'setInterval(upgradeTilesSubtiles,400);' .
-        '})();';
+            '})();';
 
         $PAGE->requires->js_init_code($js);
     } catch (Throwable $e) {
@@ -743,7 +776,7 @@ function mod_videotrack_get_coursemodule_info($coursemodule) {
 }
 
 /**
- * Dynamic course module info callback (Moodle allows $cm->set_on_click ONLY here, never in _cm_info_view).
+ * Dynamic course module info callback (Moodle allows $cm->set_on_click and set_extra_classes here).
  *
  * @param cm_info $cm Course module info object.
  * @return void
@@ -752,11 +785,14 @@ function videotrack_cm_info_dynamic(cm_info $cm) {
     $customdata = $cm->customdata;
     $displaymode = (is_array($customdata) && isset($customdata['displaymode'])) ? (int)$customdata['displaymode'] : 0;
     if ($displaymode === 1) {
+        $cm->set_extra_classes('vt-mode-card-popup');
         $popupurl = (new moodle_url('/mod/videotrack/view.php', ['id' => $cm->id, 'inpopup' => 1]))->out(false);
         $cm->set_on_click(
             'if(window.videotrackOpenPopup){return window.videotrackOpenPopup(' .
             (int)$cm->id . ',"' . s($popupurl) . '",this.textContent||"");}'
         );
+    } else if ($displaymode === 2) {
+        $cm->set_extra_classes('vt-mode-inline-embed');
     }
 }
 

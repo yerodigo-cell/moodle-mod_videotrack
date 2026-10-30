@@ -767,6 +767,41 @@ video::cue {
     display: block;
 }
 
+/* Standard Course Formats (Topics, Weeks, etc.) - Clean Mode 2 Inline Embed */
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activityiconcontainer,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-icon,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-name-area,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activityname,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-instance {
+    display: none !important;
+}
+
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-grid {
+    grid-template-columns: 1fr auto;
+    row-gap: 0;
+    border-bottom: 0 !important;
+}
+
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-info {
+    grid-column: 2;
+    margin-left: auto;
+    margin-bottom: 4px;
+    border-bottom: 0 !important;
+}
+
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-altcontent,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .description,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-description,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .contentwithoutlink {
+    grid-column: 1 / -1;
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+}
+
 /* Compatibility with format_tiles (Moodle Tiles Course Format) */
 body.format-tiles li.activity.videotrack .activity-altcontent,
 body.format-tiles li.activity.videotrack .description,
