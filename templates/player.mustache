@@ -1,34 +1,57 @@
 {{!
     @template mod_videotrack/player
-
     VideoTrack player template.
-
-    Context variables required for this template:
-    * isyoutube - Whether the video is from YouTube.
-    * ytid - The YouTube video ID.
-    * videourl - The URL of the video file (if not YouTube).
-    * progresstitle - The title for the progress section.
-    * currentpercent - The current progress percentage.
-    * progresshint - A hint text about the required progress.
-    * iscompleted - Whether the user has reached the required percentage.
-    * successmsg - The success message to show upon completion.
-
-    Example context (json):
-    {
-        "isyoutube": false,
-        "ytid": "",
-        "videourl": "https://example.com/video.mp4",
-        "progresstitle": "Progress",
-        "currentpercent": 50,
-        "progresshint": "Watch 80% to complete",
-        "iscompleted": false,
-        "successmsg": "Congratulations!"
-    }
 }}
-<div class="videotrack-container p-3 mb-4 bg-white rounded border shadow-sm">
-    <!-- Main Video Wrapper -->
-    <div class="vt-player-wrapper" style="position: relative; border-radius: 8px; overflow: hidden; background: #000;">
-        
+<div class="videotrack-container videotrack-card {{#hascustomaccent}}vt-has-custom-accent{{/hascustomaccent}} {{#isembed}}vt-is-embed{{/isembed}} {{#inpopup}}vt-in-popup{{/inpopup}}" style="--vt-accent: {{accentcolor}};">
+    <!-- Top Navigation Bar (Back to Course / Embedded Title & Focus Mode Pill) -->
+    {{#courseurl}}
+    <div class="vt-card-header">
+        <a href="{{courseurl}}" class="vt-back-btn">
+            <span class="vt-back-icon">
+                <i class="fa fa-arrow-left" aria-hidden="true"></i>
+            </span>
+            <span class="vt-back-label">{{backtocoursetext}}</span>
+        </a>
+        {{#focusmode}}
+        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}">
+            <span class="vt-focus-dot" id="vt-focus-dot"></span>
+            <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
+            <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+        </div>
+        {{/focusmode}}
+    </div>
+    {{/courseurl}}
+    {{^courseurl}}
+    {{^inpopup}}
+    <div class="vt-card-header">
+        <div class="vt-embed-title">
+            <span class="vt-embed-title-dot"></span>
+            <span>{{activityname}}</span>
+        </div>
+        {{#focusmode}}
+        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}">
+            <span class="vt-focus-dot" id="vt-focus-dot"></span>
+            <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
+            <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+        </div>
+        {{/focusmode}}
+    </div>
+    {{/inpopup}}
+    {{#inpopup}}
+    {{#focusmode}}
+    <div class="vt-card-header" style="justify-content: flex-end;">
+        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}">
+            <span class="vt-focus-dot" id="vt-focus-dot"></span>
+            <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
+            <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+        </div>
+    </div>
+    {{/focusmode}}
+    {{/inpopup}}
+    {{/courseurl}}
+
+    <!-- Main Video Wrapper (Edge-to-Edge inside card) -->
+    <div class="vt-player-wrapper">
         {{^isgdrive}}
         {{#showresumebutton}}
             <!-- Resume Overlay -->
@@ -42,16 +65,16 @@
 
         {{#isyoutube}}
             <!-- YouTube API Player Container -->
-            <div class="vt-video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: var(--vt-rad, 8px);">
+            <div class="vt-video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: 0;">
                 <div id="youtube-player" data-videoid="{{ytid}}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
             </div>
         {{/isyoutube}}
-        
+
         {{^isyoutube}}
             {{#isgdrive}}
                 {{#showresumebutton}}
                 <!-- Manual Resume Hint -->
-                <div id="vt-resume-hint-alert" style="display: flex; align-items: center; justify-content: space-between; background-color: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px; color: #475569; font-size: 0.9rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div id="vt-resume-hint-alert" style="display: flex; align-items: center; justify-content: space-between; background-color: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: 0.9rem;">
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="background: #e2e8f0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                             <i class="fa fa-history" style="color: #475569; font-size: 1rem;"></i>
@@ -64,34 +87,40 @@
                 </div>
                 {{/showresumebutton}}
                 <!-- Google Drive Iframe (No Tracking) -->
-                <div class="vt-video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: var(--vt-rad, 8px);">
+                <div class="vt-video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: 0;">
                     <iframe src="{{videourl}}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>
                 </div>
             {{/isgdrive}}
+
             {{^isgdrive}}
                 <!-- Native HTML5 Player (Local files / Direct MP4) -->
-                <div class="vt-video-container vt-html5-container" style="border-radius: var(--vt-rad, 8px); overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; width: 100%; height: var(--vt-h5-h, auto);">
-                    <video id="videotrack-player" preload="metadata" playsinline style="width: 100%; max-height: var(--vt-h5-maxh, 650px); object-fit: contain;">
+                <div class="vt-video-container vt-html5-container" style="border-radius: 0; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; width: 100%; height: var(--vt-h5-h, auto);">
+                    <video id="videotrack-player" preload="metadata" playsinline crossorigin="anonymous" style="width: 100%; max-height: var(--vt-h5-maxh, 650px); object-fit: contain; display: block;">
                         <source src="{{videourl}}" type="video/mp4">
+                        {{#hascaptions}}
+                        <track id="vt-captions-track" kind="captions" src="{{captionsurl}}" srclang="en" label="Subtitles" default>
+                        {{/hascaptions}}
                         Tu navegador no soporta video HTML5.
                     </video>
                 </div>
             {{/isgdrive}}
         {{/isyoutube}}
-        
+
         <!-- Floating Reactions Container -->
         <div id="vt-floating-reactions" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; overflow: hidden;"></div>
-        
+
+        <!-- Custom Unified Captions Container -->
+        <div id="vt-custom-captions" class="vt-custom-captions"></div>
+
         {{^isgdrive}}
         <!-- Custom Controls (HeyGen Style) -->
         <div class="vt-custom-controls" id="vt-custom-controls">
             <!-- Progress Bar Row -->
             <div class="vt-progress-container">
                 <input type="range" id="vt-seek-slider" class="vt-seek-slider" min="0" max="100" value="0" step="0.1">
-                <!-- Reaction Markers Container (Overlayed perfectly on slider) -->
-                <div id="vt-reaction-markers" style="position: absolute; bottom: 12px; left: 0; width: 100%; pointer-events: none; z-index: 20;"></div>
+                <!-- Reaction Markers Container -->
+                <div id="vt-reaction-markers" style="position: absolute; bottom: 18px; left: 0; width: 100%; pointer-events: none; z-index: 20;"></div>
             </div>
-            
             <!-- Buttons Row -->
             <div class="vt-controls-row">
                 <div class="vt-controls-left">
@@ -102,12 +131,17 @@
                         <i class="fa fa-volume-up"></i>
                     </button>
                 </div>
-                
                 <div class="vt-controls-center">
                     <div class="vt-time-display" id="vt-time-display">0:00 / 0:00</div>
                 </div>
-                
                 <div class="vt-controls-right">
+                    {{^isyoutube}}
+                    {{#hascaptions}}
+                    <button class="vt-ctrl-btn vt-cc-btn vt-cc-active" id="vt-cc-btn" title="Subtitles/CC">
+                        <i class="fa fa-cc"></i>
+                    </button>
+                    {{/hascaptions}}
+                    {{/isyoutube}}
                     <button class="vt-ctrl-btn vt-fullscreen-btn" id="vt-fullscreen-btn" title="Fullscreen">
                         <i class="fa fa-expand"></i>
                     </button>
@@ -117,62 +151,117 @@
         {{/isgdrive}}
     </div> <!-- Close .vt-player-wrapper -->
 
-    {{^isgdrive}}
-    <!-- Reaction Bar (Individual Circles Style) -->
-    <div style="display: flex; justify-content: center; flex-wrap: wrap; margin-top: 15px; position: relative; z-index: 50; gap: 15px;">
-        <button class="vt-react-btn" data-reaction="heart" onclick="if(window.videotrackReact) window.videotrackReact('heart'); return false;">❤️</button>
-        <button class="vt-react-btn" data-reaction="laugh" onclick="if(window.videotrackReact) window.videotrackReact('laugh'); return false;">😂</button>
-        <button class="vt-react-btn" data-reaction="like" onclick="if(window.videotrackReact) window.videotrackReact('like'); return false;">👍</button>
-        <button class="vt-react-btn" data-reaction="wow" onclick="if(window.videotrackReact) window.videotrackReact('wow'); return false;">😲</button>
-        <button class="vt-react-btn" data-reaction="clap" onclick="if(window.videotrackReact) window.videotrackReact('clap'); return false;">👏🏼</button>
-        <button class="vt-react-btn" data-reaction="ok" onclick="if(window.videotrackReact) window.videotrackReact('ok'); return false;">👌🏼</button>
-        <button class="vt-react-btn" data-reaction="raisedhands" onclick="if(window.videotrackReact) window.videotrackReact('raisedhands'); return false;">🙌🏼</button>
-        <button class="vt-react-btn" data-reaction="thinking" onclick="if(window.videotrackReact) window.videotrackReact('thinking'); return false;">🤔</button>
-        <button class="vt-react-btn" data-reaction="rocket" onclick="if(window.videotrackReact) window.videotrackReact('rocket'); return false;">🚀</button>
-    </div>
-    {{/isgdrive}}
-
-    <!-- Progress Interface -->
-    <div class="mt-4 px-2">
-
-        {{^showprogressbar}}
-            <div class="text-muted small mt-2" style="display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #f8fafc; padding: 14px 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <i class="fa fa-info-circle" style="color: #64748b; font-size: 1.2em;"></i> 
-                <span style="color: #475569; font-weight: 500;">{{{ gdrivenotrack }}}</span>
-            </div>
-        {{/showprogressbar}}
-        {{#showprogressbar}}
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <h4 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">{{ progresstitle }}</h4>
-                <p style="margin: 0; font-size: 0.875rem; color: #64748b; line-height: 1.4;">{{{ progresshint }}}</p>
-            </div>
-            <div style="background: #f8fafc; padding: 6px 14px; border-radius: 24px; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; justify-content: center; min-width: 65px;">
-                <span id="vt-progress-text" style="font-size: 1rem; font-weight: 700; color: #0ea5e9; line-height: 1;">{{currentpercent}}%</span>
-            </div>
+    <!-- Bottom Card Body (Reactions + Viewing Progress) -->
+    <div class="vt-card-footer">
+        {{^isgdrive}}
+        <div class="vt-reaction-bar">
+            <button class="vt-react-btn" data-reaction="heart" onclick="if(window.videotrackReact) window.videotrackReact('heart'); return false;">❤️</button>
+            <button class="vt-react-btn" data-reaction="laugh" onclick="if(window.videotrackReact) window.videotrackReact('laugh'); return false;">😂</button>
+            <button class="vt-react-btn" data-reaction="like" onclick="if(window.videotrackReact) window.videotrackReact('like'); return false;">👍</button>
+            <button class="vt-react-btn" data-reaction="wow" onclick="if(window.videotrackReact) window.videotrackReact('wow'); return false;">😲</button>
+            <button class="vt-react-btn" data-reaction="clap" onclick="if(window.videotrackReact) window.videotrackReact('clap'); return false;">👏🏼</button>
+            <button class="vt-react-btn" data-reaction="ok" onclick="if(window.videotrackReact) window.videotrackReact('ok'); return false;">👌🏼</button>
+            <button class="vt-react-btn" data-reaction="raisedhands" onclick="if(window.videotrackReact) window.videotrackReact('raisedhands'); return false;">🙌🏼</button>
+            <button class="vt-react-btn" data-reaction="thinking" onclick="if(window.videotrackReact) window.videotrackReact('thinking'); return false;">🤔</button>
+            <button class="vt-react-btn" data-reaction="rocket" onclick="if(window.videotrackReact) window.videotrackReact('rocket'); return false;">🚀</button>
         </div>
+        {{/isgdrive}}
 
-        <div style="height: 12px; border-radius: 100px; background-color: #f1f5f9; overflow: hidden; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);">
-            <div id="vt-progress-bar" role="progressbar" style="height: 100%; width: {{currentpercent}}%; border-radius: 100px; background: linear-gradient(90deg, #0ea5e9 0%, #3b82f6 100%); transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: inset 0 -1px 2px rgba(0,0,0,0.1), 0 2px 4px rgba(59, 130, 246, 0.3);" aria-valuenow="{{currentpercent}}" aria-valuemin="0" aria-valuemax="100">
+        <!-- Progress Interface -->
+        <div>
+            {{^showprogressbar}}
+                <div class="text-muted small mt-2" style="display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #f8fafc; padding: 14px 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <i class="fa fa-info-circle" style="color: #64748b; font-size: 1.2em;"></i>
+                    <span style="color: #475569; font-weight: 500;">{{{ gdrivenotrack }}}</span>
+                </div>
+            {{/showprogressbar}}
+
+            {{#showprogressbar}}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">{{ progresstitle }}</h4>
+                    <p style="margin: 0; font-size: 0.875rem; color: #64748b; line-height: 1.4;">{{{ progresshint }}}</p>
+                </div>
+                <div style="background: #f8fafc; padding: 6px 14px; border-radius: 24px; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; justify-content: center; min-width: 65px;">
+                    <span id="vt-progress-text" class="vt-progress-text" style="font-size: 1rem; font-weight: 700; line-height: 1;">{{currentpercent}}%</span>
+                </div>
             </div>
+
+            <div style="height: 10px; border-radius: 100px; background-color: #f1f5f9; overflow: hidden; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);">
+                <div id="vt-progress-bar" class="vt-progress-bar-fill" role="progressbar" style="height: 100%; width: {{currentpercent}}%; border-radius: 100px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);" aria-valuenow="{{currentpercent}}" aria-valuemin="0" aria-valuemax="100">
+                </div>
+            </div>
+
+            <!-- Success message -->
+            <div id="vt-success-msg" class="mt-4 {{^iscompleted}}d-none{{/iscompleted}}" style="display: flex; align-items: center; gap: 14px; background: #f0fdf4; padding: 14px 18px; border-radius: 12px; border: 1px solid #bbf7d0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);">
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);">
+                    <i class="fa fa-check" style="font-size: 14px;"></i>
+                </div>
+                <div>
+                    <span style="font-weight: 600; font-size: 0.92rem; color: #065f46; letter-spacing: -0.01em;">{{ successmsg }}</span>
+                </div>
+            </div>
+            {{/showprogressbar}}
         </div>
-        
-        <!-- Success message -->
-        <div id="vt-success-msg" class="mt-4 {{^iscompleted}}d-none{{/iscompleted}}" style="display: flex; align-items: center; gap: 14px; background: #f0fdf4; padding: 16px 20px; border-radius: 12px; border: 1px solid #bbf7d0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);">
-            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);">
-                <i class="fa fa-check" style="font-size: 15px;"></i>
-            </div>
-            <div>
-                <span style="font-weight: 600; font-size: 0.95rem; color: #065f46; letter-spacing: -0.01em;">{{ successmsg }}</span>
-            </div>
-        </div>
-        {{/showprogressbar}}
     </div>
 </div>
 
 {{#js}}
 require(['jquery'], function($) {
+    var inPopup = {{#inpopup}}true{{/inpopup}}{{^inpopup}}false{{/inpopup}};
+
+    // Auto-resize parent course iframe accurately when rendered in inline embed mode
+    var syncParentIframeHeight = function() {
+        if (window.parent && window.parent !== window) {
+            try {
+                document.body.style.margin = '0';
+                document.body.style.background = 'transparent';
+
+                if (inPopup) {
+                    document.documentElement.style.overflowY = 'auto';
+                    document.body.style.overflowY = 'auto';
+                    document.body.style.padding = '8px 12px 16px 12px';
+                    return;
+                }
+
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
+                document.body.style.padding = '4px 0 16px 0';
+
+                var card = document.querySelector('.videotrack-card');
+                if (card) {
+                    var rect = card.getBoundingClientRect();
+                    var scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+                    var exactHeight = Math.ceil(rect.bottom + scrollTop) + 20;
+                    if (exactHeight > 250) {
+                        if (window.frameElement) {
+                            window.frameElement.style.height = exactHeight + 'px';
+                            window.frameElement.style.maxHeight = 'none';
+                        }
+                        window.parent.postMessage({
+                            type: 'vt-resize',
+                            cmid: "{{cmid}}",
+                            height: exactHeight
+                        }, '*');
+                    }
+                }
+            } catch (e) {}
+        }
+    };
+
+    syncParentIframeHeight();
+    $(window).on('load resize', syncParentIframeHeight);
+    if (window.ResizeObserver) {
+        var cardEl = document.querySelector('.videotrack-card');
+        if (cardEl) {
+            var ro = new ResizeObserver(function() {
+                syncParentIframeHeight();
+            });
+            ro.observe(cardEl);
+        }
+    }
+    setInterval(syncParentIframeHeight, 400);
+
     window.videotrackResume = function() {
         var targetPercent = Number("{{currentpercent}}") || 0;
         var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};
@@ -182,7 +271,6 @@ require(['jquery'], function($) {
             if (!video) {
                 return;
             }
-
             var doResume = function() {
                 var targetTime = (targetPercent / 100) * video.duration;
                 video.currentTime = targetTime;
@@ -216,7 +304,6 @@ require(['jquery'], function($) {
         window.videotrackResume();
     });
 
-    // Hide button if the video is played manually
     var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};
     if (!isYouTube) {
         var video = document.getElementById('videotrack-player');
@@ -224,6 +311,8 @@ require(['jquery'], function($) {
             video.addEventListener('play', function() {
                 $('#vt-resume-overlay').fadeOut();
             });
+            video.addEventListener('loadedmetadata', syncParentIframeHeight);
+            video.addEventListener('loadeddata', syncParentIframeHeight);
         }
     }
 });
@@ -233,11 +322,7 @@ require(['mod_videotrack/reactions', 'mod_videotrack/controls'], function(reacti
     var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};
     var cmid = "{{cmid}}";
     var ytid = "{{ytid}}";
-
-    // Initialize custom controls
     controls.init(isYouTube, ytid);
-
-    // Initialize reactions
     reactions.init(cmid, isYouTube, ytid);
 });
 {{/isgdrive}}

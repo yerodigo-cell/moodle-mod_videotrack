@@ -22,13 +22,11 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
-
 /**
  * Structure step to restore one videotrack activity.
  *
  * @package    mod_videotrack
- * @copyright   2026 EduPlugins Studio
+ * @copyright  2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class restore_videotrack_activity_structure_step extends restore_activity_structure_step {
@@ -55,6 +53,11 @@ class restore_videotrack_activity_structure_step extends restore_activity_struct
         $oldid = $data->id;
 
         $data->course = $this->get_courseid();
+        $data->isgdrive = isset($data->isgdrive) ? (int)$data->isgdrive : 0;
+        $data->manualtime = isset($data->manualtime) ? (int)$data->manualtime : 0;
+        $data->focusmode = isset($data->focusmode) ? (int)$data->focusmode : 0;
+        $data->accentcolor = isset($data->accentcolor) ? (string)$data->accentcolor : '';
+        $data->displaymode = isset($data->displaymode) ? (int)$data->displaymode : 0;
         $data->timecreated = $this->apply_date_offset($data->timecreated);
         $data->timemodified = $this->apply_date_offset($data->timemodified);
 
@@ -69,8 +72,9 @@ class restore_videotrack_activity_structure_step extends restore_activity_struct
      * After execute process.
      */
     protected function after_execute() {
-        // Restore files associated with 'intro' and 'video' fileareas.
+        // Restore files associated with 'intro', 'video' and 'captions' fileareas.
         $this->add_related_files('mod_videotrack', 'intro', null);
         $this->add_related_files('mod_videotrack', 'video', null);
+        $this->add_related_files('mod_videotrack', 'captions', null);
     }
 }

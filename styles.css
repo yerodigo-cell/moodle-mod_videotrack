@@ -1,7 +1,209 @@
 /* mod_videotrack styles */
 
+/* Allow Moodle 4 Boost container to accommodate the wider 1024px card */
+#page-mod-videotrack-view #region-main>.card,
+#page-mod-videotrack-view .main-inner {
+    max-width: 1120px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Main Centered Single-Card Container */
+.videotrack-card {
+    --vt-accent: #0ea5e9;
+    max-width: 1024px;
+    width: 100%;
+    margin: 24px auto 32px auto;
+    padding: 0;
+    background-color: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 14px -2px rgba(15, 23, 42, 0.05);
+}
+
+/* Header & Modern Back to Course Button + Focus Mode Pill */
+.vt-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.vt-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 15px 5px 7px;
+    background-color: #f8fafc;
+    color: #334155 !important;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.vt-back-btn .vt-back-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #e2e8f0;
+    color: #475569;
+    font-size: 0.72rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vt-back-btn:hover {
+    background-color: #f8fafc;
+    border-color: var(--vt-accent, #0ea5e9);
+    color: var(--vt-accent, #0ea5e9) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.vt-back-btn:hover .vt-back-icon {
+    background-color: var(--vt-accent, #0ea5e9);
+    color: #ffffff;
+    transform: translateX(-2px);
+}
+
+.vt-back-btn:active {
+    transform: translateY(0);
+}
+
+/* Embedded Title inside .vt-card-header when rendered inline on course page */
+.vt-embed-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.vt-embed-title-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--vt-accent, #0ea5e9);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
+    flex-shrink: 0;
+}
+
+/* Elegant Focus Mode Badge inside .vt-card-header (opposite Back to Course) */
+.vt-focus-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    user-select: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vt-focus-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+    flex-shrink: 0;
+}
+
+.vt-focus-badge .vt-focus-pause-icon {
+    display: none !important;
+    color: #d97706;
+    font-size: 0.92rem;
+}
+
+/* Alert state when Focus Mode auto-pauses the video */
+.vt-focus-badge.vt-focus-paused {
+    background-color: #fffbeb;
+    border-color: #fde68a;
+    color: #b45309;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.14);
+}
+
+.vt-focus-badge.vt-focus-paused .vt-focus-dot {
+    display: none !important;
+}
+
+.vt-focus-badge.vt-focus-paused .vt-focus-pause-icon {
+    display: inline-block !important;
+}
+
+/* Edge-to-Edge Video Wrapper inside the Card */
+.vt-player-wrapper {
+    position: relative;
+    width: 100%;
+    border-radius: 0;
+    overflow: hidden;
+    background: #000;
+    box-shadow: none;
+}
+
+/* Card Footer (15px horizontal padding matches .vt-custom-controls for exact bar alignment) */
+.vt-card-footer {
+    padding: 18px 15px 24px 15px;
+    background-color: #ffffff;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* Viewing Progress Bar & Percentage Text (Default Sky-Blue vs Custom Accent Colour) */
+.vt-progress-text,
+#vt-progress-text {
+    color: var(--vt-accent, #0ea5e9);
+}
+
+.vt-progress-bar-fill,
+#vt-progress-bar {
+    background: linear-gradient(90deg, #0ea5e9 0%, #3b82f6 100%);
+    box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.videotrack-card.vt-has-custom-accent .vt-progress-bar-fill,
+.videotrack-card.vt-has-custom-accent #vt-progress-bar {
+    background: var(--vt-accent, #0ea5e9);
+    box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 768px) {
+    .videotrack-card {
+        margin: 12px auto 20px auto;
+        border-radius: 12px;
+    }
+
+    .vt-card-header {
+        padding: 12px 15px;
+        flex-wrap: wrap;
+    }
+
+    .vt-focus-badge {
+        font-size: 0.76rem;
+        padding: 4px 11px;
+    }
+}
+
 #vt-resume-btn {
-    background-color: #14283b; /* Dark navy from image */
+    background-color: #14283b;
     color: #fff;
     border: none;
     border-radius: 50px;
@@ -18,58 +220,92 @@
     gap: 12px;
     text-decoration: none;
 }
+
 #vt-resume-btn:hover {
     background-color: #1a364d;
     transform: scale(1.05);
     color: #fff;
 }
+
 #vt-resume-btn:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(20, 40, 59, 0.5);
 }
+
 #vt-resume-btn i {
     font-size: 18px;
 }
 
+/* Refined, harmonious & compact emoji reaction bar */
+.vt-reaction-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+    position: relative;
+    z-index: 50;
+}
+
 .vt-react-btn {
-    background: #f0f2f5;
-    border: none;
-    font-size: 24px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 20px;
+    line-height: 1;
     cursor: pointer;
     padding: 0;
-    transition: transform 0.2s, background-color 0.2s;
     border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    user-select: none;
 }
+
 .vt-react-btn:hover {
-    transform: scale(1.3);
+    background: #ffffff;
+    border-color: #cbd5e1;
+    transform: translateY(-2px) scale(1.18);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
+}
+
+.vt-react-btn:active {
+    transform: translateY(0) scale(0.95);
 }
 
 .vt-floating-emoji {
     position: absolute;
     bottom: 50px;
     right: 40px;
-    font-size: 30px;
+    font-size: 24px;
     animation: vt-float-up 3s ease-out forwards;
     opacity: 0;
 }
 
 @keyframes vt-float-up {
     0% {
-        transform: translateY(0) scale(0.5);
+        bottom: 50px;
+        transform: scale(0.5) translateX(0);
         opacity: 1;
     }
+
     50% {
-        transform: translateY(-100px) scale(1.2) translateX(-20px);
-        opacity: 0.8;
+        bottom: 50%;
+        transform: scale(1.15) translateX(-20px);
+        opacity: 0.9;
     }
+
+    85% {
+        opacity: 0.7;
+    }
+
     100% {
-        transform: translateY(-200px) scale(1) translateX(10px);
+        bottom: calc(100% - 40px);
+        transform: scale(1) translateX(10px);
         opacity: 0;
     }
 }
@@ -79,23 +315,83 @@
         transform: translate(-50%, var(--vt-y-offset, -10px)) scale(0);
         opacity: 0;
     }
+
     60% {
-        transform: translate(-50%, var(--vt-y-offset, -10px)) scale(1.3);
+        transform: translate(-50%, var(--vt-y-offset, -10px)) scale(1.25);
         opacity: 1;
     }
+
     80% {
-        transform: translate(-50%, var(--vt-y-offset, -10px)) scale(0.9);
+        transform: translate(-50%, var(--vt-y-offset, -10px)) scale(0.92);
         opacity: 1;
     }
+
     100% {
         transform: translate(-50%, var(--vt-y-offset, -10px)) scale(1);
         opacity: 1;
     }
 }
 
+/* Hide any native browser cues just in case so only our unified box is shown */
+video::-webkit-media-text-track-display,
+video::-webkit-media-text-track-container,
+video::cue {
+    opacity: 0 !important;
+}
+
+/* Custom Unified Subtitles Overlay (Identical across Chrome, Safari, Firefox & Edge) */
+.vt-custom-captions {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 820px;
+    text-align: center;
+    pointer-events: none;
+    z-index: 25;
+    transition: bottom 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: none;
+}
+
+/* Gently lift subtitles when controls are visible so they don't cover the seek bar */
+.vt-player-wrapper.vt-active-controls .vt-custom-captions,
+.vt-player-wrapper.vt-is-paused .vt-custom-captions,
+.vt-player-wrapper:hover .vt-custom-captions {
+    bottom: 64px;
+}
+
+.vt-caption-box {
+    display: inline-block;
+    background: rgba(15, 23, 42, 0.78);
+    color: #ffffff;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 1.05rem;
+    font-weight: 500;
+    line-height: 1.4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(2px);
+}
+
+.vt-player-wrapper.vt-is-fullscreen .vt-caption-box {
+    font-size: 1.45rem;
+    padding: 8px 22px;
+}
+
 #vt-reaction-markers {
+    bottom: 18px !important;
     opacity: 0;
     transition: opacity 0.3s ease;
+}
+
+/* 20px timeline reaction markers with comfortable separation above the progress bar */
+#vt-reaction-markers>div {
+    font-size: 20px !important;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
 .vt-player-wrapper:hover #vt-reaction-markers,
@@ -109,11 +405,10 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    /* Gradient similar to HeyGen: dark fade from bottom to transparent */
     background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 50%, transparent 100%);
     display: flex;
     flex-direction: column;
-    padding: 30px 15px 10px; /* Extra top padding for the gradient */
+    padding: 30px 15px 10px;
     box-sizing: border-box;
     z-index: 30;
     opacity: 0;
@@ -128,7 +423,7 @@
 .vt-progress-container {
     width: 100%;
     position: relative;
-    margin-bottom: 8px; /* Space between progress bar and buttons */
+    margin-bottom: 8px;
 }
 
 .vt-controls-row {
@@ -171,7 +466,12 @@
 }
 
 .vt-ctrl-btn:hover {
-    color: #4db8ff;
+    color: var(--vt-accent, #4db8ff);
+}
+
+.vt-ctrl-btn.vt-cc-active {
+    color: var(--vt-accent, #38bdf8);
+    border-bottom: 2px solid var(--vt-accent, #38bdf8);
 }
 
 .vt-time-display {
@@ -186,8 +486,9 @@
 
 .vt-seek-slider {
     -webkit-appearance: none;
+    appearance: none;
     width: 100%;
-    height: 4px; /* Thinner line like HeyGen */
+    height: 4px;
     background: linear-gradient(to right, #fff var(--vt-progress, 0%), rgba(255, 255, 255, 0.3) var(--vt-progress, 0%));
     border-radius: 2px;
     outline: none;
@@ -210,7 +511,7 @@
 
 .vt-seek-slider::-webkit-slider-thumb:hover {
     transform: scale(1.3);
-    background: #4db8ff;
+    background: var(--vt-accent, #4db8ff);
 }
 
 .vt-seek-slider::-moz-range-thumb {
@@ -226,9 +527,8 @@
 
 .vt-seek-slider::-moz-range-thumb:hover {
     transform: scale(1.3);
-    background: #4db8ff;
+    background: var(--vt-accent, #4db8ff);
 }
-
 
 /* Reliable JS-based Fullscreen & Touch Controls */
 .vt-player-wrapper.vt-is-fullscreen {
@@ -237,9 +537,6 @@
     --vt-h5-h: 100%;
     --vt-h5-maxh: none;
     --vt-rad: 0;
-}
-
-.vt-player-wrapper.vt-is-fullscreen {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -276,4 +573,300 @@
 .vt-player-wrapper.vt-is-fullscreen .vt-custom-controls {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+}
+
+/* Course Page Display Mode 1 (Card + Modal Popup) & Mode 2 (Inline Embedded Player) */
+#page-mod-videotrack-view.pagelayout-embedded,
+#page-mod-videotrack-view.pagelayout-embedded #page,
+#page-mod-videotrack-view.pagelayout-embedded #page-content,
+#page-mod-videotrack-view.pagelayout-embedded #region-main-box,
+#page-mod-videotrack-view.pagelayout-embedded #region-main,
+#page-mod-videotrack-view.pagelayout-embedded .main-inner {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+#page-mod-videotrack-view.pagelayout-embedded .activity-header,
+#page-mod-videotrack-view.pagelayout-embedded .activity-information {
+    display: none !important;
+}
+
+.videotrack-card.vt-is-embed {
+    margin: 2px auto 12px auto;
+    box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.06);
+}
+
+.videotrack-card.vt-in-popup {
+    max-width: 820px;
+    margin: 4px auto;
+}
+
+.vt-course-inline-embed {
+    width: 100%;
+    max-width: 1024px;
+    margin: 12px 0;
+}
+
+.vt-course-inline-iframe {
+    width: 100%;
+    min-height: 860px;
+    border: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    display: block;
+    background: transparent;
+}
+
+.vt-course-card {
+    max-width: 560px;
+    margin: 10px 0;
+    padding: 16px 20px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.vt-course-card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.vt-course-card-play {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 18px 8px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.vt-course-card-play:hover {
+    border-color: var(--vt-accent, #0ea5e9);
+    color: var(--vt-accent, #0ea5e9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.vt-course-play-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--vt-accent, #0ea5e9);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.vt-course-card-progress {
+    flex: 1;
+    min-width: 160px;
+}
+
+.vt-course-card-progress-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.vt-course-card-progress-top strong {
+    color: var(--vt-accent, #0ea5e9);
+}
+
+.vt-course-card-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    overflow: hidden;
+}
+
+.vt-course-card-bar>div {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+.vt-course-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(4px);
+    z-index: 10550;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overscroll-behavior: contain;
+}
+
+.vt-course-modal-dialog {
+    width: 100%;
+    max-width: 900px;
+    height: 92vh;
+    max-height: 860px;
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+}
+
+.vt-course-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+}
+
+.vt-course-modal-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #0f172a;
+}
+
+.vt-course-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0 6px;
+}
+
+.vt-course-modal-body {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.vt-course-modal-body iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
+/* Compatibility with format_tiles (Moodle Tiles Course Format) */
+body.format-tiles li.activity.videotrack .activity-altcontent,
+body.format-tiles li.activity.videotrack .description,
+body.format-tiles li.activity.videotrack .contentwithoutlink,
+body.format-tiles li.activity.videotrack .activity-description {
+    width: 100% !important;
+    max-width: 1024px !important;
+    overflow: visible !important;
+}
+
+body.format-tiles .vt-course-inline-embed {
+    width: 100%;
+    max-width: 1024px;
+    margin: 12px auto;
+}
+
+/* Clean Full-Width Row & Modern Sub-tiles in format_tiles (Video Title + Percentage in Footer) */
+body.format-tiles li.activity.videotrack.vt-tiles-fullwidth-row {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    float: none !important;
+    clear: both !important;
+    margin: 20px 0 12px 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+body.format-tiles li.activity.videotrack.vt-tiles-fullwidth-row .vt-course-inline-embed {
+    width: 100%;
+    max-width: 1024px;
+    margin: 0 auto;
+}
+
+body.format-tiles li.activity.subtile.videotrack.vt-enhanced-subtile {
+    position: relative !important;
+    overflow: hidden !important;
+    border-radius: 14px !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.format-tiles li.activity.subtile.videotrack.vt-enhanced-subtile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -4px rgba(15, 23, 42, 0.12) !important;
+}
+
+.vt-subtile-progress-wrap {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 10px 14px 10px 14px !important;
+    background: #ffffff !important;
+    border-top: 1px solid #f1f5f9 !important;
+    z-index: 5;
+}
+
+.vt-subtile-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    line-height: 1.25;
+    margin-bottom: 6px;
+}
+
+.vt-subtile-video-title {
+    color: #334155;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.vt-subtile-progress-meta strong {
+    color: var(--vt-accent, #0ea5e9);
+    font-weight: 700;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+}
+
+.vt-subtile-progress-track {
+    height: 4px;
+    width: 100%;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.vt-subtile-progress-fill {
+    height: 100%;
+    background: var(--vt-accent, #0ea5e9);
+    border-radius: 999px;
 }

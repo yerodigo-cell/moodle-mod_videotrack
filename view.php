@@ -27,6 +27,9 @@ require_once(__DIR__ . '/lib.php');
 require_once($CFG->libdir . '/completionlib.php');
 
 $id = required_param('id', PARAM_INT);
+$inpopup = optional_param('inpopup', 0, PARAM_BOOL);
+$embed = optional_param('embed', 0, PARAM_BOOL);
+$isembed = ($inpopup || $embed);
 
 $cm = get_coursemodule_from_id('videotrack', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
@@ -36,10 +39,23 @@ require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 require_capability('mod/videotrack:view', $context);
 
-$PAGE->set_url('/mod/videotrack/view.php', ['id' => $cm->id]);
+$PAGE->set_cm($cm, $course, $videotrack);
+$PAGE->set_url('/mod/videotrack/view.php', [
+    'id' => $cm->id,
+    'embed' => (int)$embed,
+    'inpopup' => (int)$inpopup,
+]);
 $PAGE->set_title(format_string($videotrack->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
+
+if ($isembed) {
+    $PAGE->set_pagelayout('embedded');
+    $PAGE->requires->css(new moodle_url('/mod/videotrack/styles.css'));
+    if (isset($PAGE->activityheader)) {
+        $PAGE->activityheader->disable();
+    }
+}
 
 // Trigger Moodle course_module_viewed event for reports and external plugins (e.g. Level Up XP).
 $event = \mod_videotrack\event\course_module_viewed::create([
@@ -55,16 +71,11 @@ $event->add_record_snapshot('course_modules', $cm);
 $event->add_record_snapshot('videotrack', $videotrack);
 $event->trigger();
 
-// Read the stored video URL directly (already resolved once on activity creation/update in lib.php).
-// Fixes mod_videotrack/VTRK-SEC-002: do not re-process or perform outbound HTTP requests on every view.
 $videourl = trim($videotrack->videourl ?? '');
 $videourl = html_entity_decode($videourl);
 $isyoutube = false;
 $ytid = '';
 $isgdrive = (strpos($videourl, 'drive.google.com') !== false);
-
-// For Google Drive, lib.php already formats the URL as /preview.
-// We will pass $isgdrive to the template so it can render an iframe.
 
 if (!empty($videourl)) {
     if (stripos($videourl, 'youtube.com') !== false || stripos($videourl, 'youtu.be') !== false) {
@@ -73,7 +84,6 @@ if (!empty($videourl)) {
         $path = $parsed['path'] ?? '';
         $query = $parsed['query'] ?? '';
 
-        // Method 1: Standard (watch?v=ID).
         if ($query) {
             parse_str($query, $params);
             if (isset($params['v'])) {
@@ -81,7 +91,6 @@ if (!empty($videourl)) {
             }
         }
 
-        // Method 2: Shorts, Embed or Live (youtube.com/shorts/ID).
         if (empty($ytid) && !empty($path)) {
             $pathparts = explode('/', trim($path, '/'));
             foreach ($pathparts as $index => $part) {
@@ -94,12 +103,10 @@ if (!empty($videourl)) {
             }
         }
 
-        // Method 3: Short link (youtu.be/ID).
         if (empty($ytid) && stripos($videourl, 'youtu.be') !== false) {
             $ytid = trim($path, '/');
         }
 
-        // Clean the ID by removing query parameters (?si=..., etc.).
         if (!empty($ytid)) {
             $ytid = explode('?', $ytid)[0];
             $ytid = explode('&', $ytid)[0];
@@ -113,8 +120,9 @@ if (!empty($videourl)) {
     }
 }
 
+$fs = get_file_storage();
+
 if (empty($videourl) || (!$isyoutube && strpos($videourl, 'http') === false)) {
-    $fs = get_file_storage();
     $files = $fs->get_area_files($context->id, 'mod_videotrack', 'video', 0, 'sortorder', false);
     foreach ($files as $f) {
         if (!$f->is_directory() && strpos($f->get_mimetype(), 'video/') === 0) {
@@ -132,7 +140,22 @@ if (empty($videourl) || (!$isyoutube && strpos($videourl, 'http') === false)) {
     }
 }
 
-// Search for current progress.
+$captionsurl = '';
+$captionfiles = $fs->get_area_files($context->id, 'mod_videotrack', 'captions', 0, 'sortorder', false);
+foreach ($captionfiles as $cf) {
+    if (!$cf->is_directory()) {
+        $captionsurl = moodle_url::make_pluginfile_url(
+            $cf->get_contextid(),
+            $cf->get_component(),
+            $cf->get_filearea(),
+            $cf->get_itemid(),
+            $cf->get_filepath(),
+            $cf->get_filename()
+        )->out();
+        break;
+    }
+}
+
 $progress = $DB->get_record('videotrack_progress', ['videotrackid' => $videotrack->id, 'userid' => $USER->id]);
 $currentpercent = $progress ? (int)$progress->highestpercent : 0;
 $highesttime = ($progress && isset($progress->highesttime)) ? (int)$progress->highesttime : 0;
@@ -140,9 +163,12 @@ $iscompleted = $progress ? (bool)$progress->iscompleted : false;
 
 $ismanualtrack = !empty($videotrack->isgdrive);
 $manualtime = (int)($videotrack->manualtime ?? 0);
+$focusmode = !empty($videotrack->focusmode);
 
-// If it's a Google Drive iframe, we cannot track progress natively.
-// Automatically mark as complete so students don't get stuck, UNLESS manual tracking is enabled.
+$rawaccent = videotrack_sanitize_accentcolor($videotrack->accentcolor ?? '');
+$hascustomaccent = ($rawaccent !== '' && $rawaccent !== '#0ea5e9');
+$accentcolor = $hascustomaccent ? $rawaccent : '#0ea5e9';
+
 if ($isgdrive && !$ismanualtrack && !$iscompleted) {
     if (!$progress) {
         $progress = new stdClass();
@@ -161,7 +187,6 @@ if ($isgdrive && !$ismanualtrack && !$iscompleted) {
         $DB->update_record('videotrack_progress', $progress);
     }
 
-    // Trigger Moodle completion API.
     $completion = new completion_info($course);
     if ($completion->is_enabled($cm)) {
         $completion->update_state($cm, COMPLETION_COMPLETE, $USER->id);
@@ -173,13 +198,11 @@ if ($isgdrive && !$ismanualtrack && !$iscompleted) {
 
 $isfree = ($videotrack->targetpercent <= 0);
 
-if ($iscompleted || $isfree) {
-    $completion = new completion_info($course);
-    if ($completion->is_enabled($cm)) {
-        $completion->set_module_viewed($cm);
-        if ($isfree) {
-            $completion->update_state($cm, COMPLETION_COMPLETE);
-        }
+$completion = new completion_info($course);
+if ($completion->is_enabled($cm)) {
+    $completion->set_module_viewed($cm);
+    if ($iscompleted || $isfree) {
+        $completion->update_state($cm, COMPLETION_COMPLETE, $USER->id);
     }
 }
 
@@ -187,11 +210,26 @@ $formattedtime = ($highesttime >= 3600)
     ? sprintf("%02d:%02d:%02d", intdiv($highesttime, 3600), intdiv($highesttime % 3600, 60), $highesttime % 60)
     : sprintf("%02d:%02d", intdiv($highesttime, 60), $highesttime % 60);
 
+// Hide the "Back to course" button when rendered embedded or inside the course modal popup.
+$courseurl = $isembed ? '' : (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false);
+
 $templatecontext = [
     'cmid' => $cm->id,
+    'activityname' => format_string($videotrack->name),
+    'isembed' => (bool)$isembed,
+    'inpopup' => (bool)$inpopup,
+    'courseurl' => $courseurl,
+    'backtocoursetext' => get_string('backtocourse', 'mod_videotrack'),
     'videourl' => $videourl,
+    'captionsurl' => $captionsurl,
+    'hascaptions' => !empty($captionsurl),
     'isyoutube' => $isyoutube,
     'isgdrive' => $isgdrive,
+    'focusmode' => $focusmode,
+    'focusmodebadge' => get_string('focusmode_badge', 'mod_videotrack'),
+    'focusmodepaused' => get_string('focusmode_paused', 'mod_videotrack'),
+    'accentcolor' => $accentcolor,
+    'hascustomaccent' => $hascustomaccent,
     'showprogressbar' => (!$isgdrive || $ismanualtrack),
     'ytid' => $ytid,
     'targetpercent' => $videotrack->targetpercent,
@@ -200,8 +238,8 @@ $templatecontext = [
     'isfree' => $isfree,
     'showresumebutton' => ($currentpercent > 0 && $currentpercent < 100),
     'progresstitle' => get_string('progresstitle', 'mod_videotrack'),
-    'progressfree'  => $isfree,
-    'progresshint'  => $isfree
+    'progressfree' => $isfree,
+    'progresshint' => $isfree
         ? get_string('progressfree', 'mod_videotrack')
         : get_string('progresshint', 'mod_videotrack', $videotrack->targetpercent),
     'successmsg' => get_string('successmsg', 'mod_videotrack'),
@@ -210,8 +248,7 @@ $templatecontext = [
     'gdrivenotrack' => get_string('gdrivenotrack', 'mod_videotrack'),
 ];
 
-// Do not track progress for Google Drive iframes unless manual track is enabled.
-if (!$isgdrive || $ismanualtrack) {
+if (!$isgdrive || $ismanualtrack || $focusmode) {
     $PAGE->requires->js_call_amd('mod_videotrack/tracker', 'init', [
         $cm->id,
         $videotrack->targetpercent,
@@ -221,6 +258,7 @@ if (!$isgdrive || $ismanualtrack) {
         $highesttime,
         $ismanualtrack,
         $manualtime,
+        $focusmode,
     ]);
 }
 

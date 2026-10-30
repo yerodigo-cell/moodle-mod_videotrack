@@ -22,13 +22,11 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
-
 /**
  * Structure step class for backup.
  *
  * @package    mod_videotrack
- * @copyright   2026 EduPlugins Studio
+ * @copyright  2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class backup_videotrack_activity_structure_step extends backup_activity_structure_step {
@@ -41,15 +39,17 @@ class backup_videotrack_activity_structure_step extends backup_activity_structur
         // XML structure element.
         $videotrack = new backup_nested_element('videotrack', ['id'], [
             'course', 'name', 'intro', 'introformat', 'videourl', 'targetpercent',
-            'isgdrive', 'manualtime', 'timecreated', 'timemodified',
+            'isgdrive', 'manualtime', 'focusmode', 'accentcolor', 'displaymode',
+            'timecreated', 'timemodified',
         ]);
 
         // Connect database table fields.
         $videotrack->set_source_table('videotrack', ['id' => backup::VAR_ACTIVITYID]);
 
-        // Backup files in 'intro' and 'video' fileareas.
+        // Backup files in 'intro', 'video', and 'captions' fileareas.
         $videotrack->annotate_files('mod_videotrack', 'intro', null); // Default intro files.
         $videotrack->annotate_files('mod_videotrack', 'video', null); // Local uploaded video files.
+        $videotrack->annotate_files('mod_videotrack', 'captions', null); // Captions files (.vtt / .srt).
 
         return $this->prepare_activity_structure($videotrack);
     }
