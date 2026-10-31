@@ -2,18 +2,21 @@
     @template mod_videotrack/player
     VideoTrack player template.
 }}
+
 <div class="videotrack-container videotrack-card {{#hascustomaccent}}vt-has-custom-accent{{/hascustomaccent}} {{#isembed}}vt-is-embed{{/isembed}} {{#inpopup}}vt-in-popup{{/inpopup}}" style="--vt-accent: {{accentcolor}};">
-    <!-- Top Navigation Bar (Back to Course / Embedded Title & Focus Mode Pill) -->
+    <!-- Top Navigation Bar (Back to Course / Embedded Title, Teacher Icon Buttons & Focus Mode Indicator) -->
     {{#courseurl}}
     <div class="vt-card-header">
-        <a href="{{courseurl}}" class="vt-back-btn">
-            <span class="vt-back-icon">
-                <i class="fa fa-arrow-left" aria-hidden="true"></i>
-            </span>
-            <span class="vt-back-label">{{backtocoursetext}}</span>
-        </a>
+        <div class="vt-header-left">
+            <a href="{{courseurl}}" class="vt-squircle-back-btn" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border-radius:10px;background-color:var(--vt-accent, #0ea5e9);color:#ffffff;border:0;text-decoration:none;box-shadow:0 2px 6px rgba(15,23,42,0.14);" title="{{backtocoursetext}}" aria-label="{{backtocoursetext}}">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </a>
+        </div>
         {{#focusmode}}
-        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}">
+        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
             <span class="vt-focus-dot" id="vt-focus-dot"></span>
             <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
             <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
@@ -24,12 +27,31 @@
     {{^courseurl}}
     {{^inpopup}}
     <div class="vt-card-header">
-        <div class="vt-embed-title">
-            <span class="vt-embed-title-dot"></span>
-            <span>{{activityname}}</span>
+        <div class="vt-header-left">
+            <div class="vt-embed-title">
+                <span class="vt-embed-title-dot"></span>
+                <span>{{activityname}}</span>
+            </div>
+            {{#canmanage}}
+            <div class="vt-teacher-actions">
+                <a href="{{settingsurl}}" class="vt-teacher-link" target="_top" title="{{settingslabel}}" aria-label="{{settingslabel}}">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </a>
+                <a href="{{reporturl}}" class="vt-teacher-link" target="_top" title="{{reportlabel}}" aria-label="{{reportlabel}}">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="7" y1="18" x2="7" y2="12"></line>
+                        <line x1="12" y1="18" x2="12" y2="6"></line>
+                        <line x1="17" y1="18" x2="17" y2="10"></line>
+                    </svg>
+                </a>
+            </div>
+            {{/canmanage}}
         </div>
         {{#focusmode}}
-        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}">
+        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
             <span class="vt-focus-dot" id="vt-focus-dot"></span>
             <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
             <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
@@ -38,15 +60,45 @@
     </div>
     {{/inpopup}}
     {{#inpopup}}
+    {{#canmanage}}
+    <div class="vt-card-header">
+        <div class="vt-header-left">
+            <div class="vt-teacher-actions" style="margin-left: 0;">
+                <a href="{{settingsurl}}" class="vt-teacher-link" target="_top" title="{{settingslabel}}" aria-label="{{settingslabel}}">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </a>
+                <a href="{{reporturl}}" class="vt-teacher-link" target="_top" title="{{reportlabel}}" aria-label="{{reportlabel}}">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="7" y1="18" x2="7" y2="12"></line>
+                        <line x1="12" y1="18" x2="12" y2="6"></line>
+                        <line x1="17" y1="18" x2="17" y2="10"></line>
+                    </svg>
+                </a>
+            </div>
+        </div>
+        {{#focusmode}}
+        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
+            <span class="vt-focus-dot" id="vt-focus-dot"></span>
+            <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
+            <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+        </div>
+        {{/focusmode}}
+    </div>
+    {{/canmanage}}
+    {{^canmanage}}
     {{#focusmode}}
     <div class="vt-card-header" style="justify-content: flex-end;">
-        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}">
+        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
             <span class="vt-focus-dot" id="vt-focus-dot"></span>
             <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
             <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
         </div>
     </div>
     {{/focusmode}}
+    {{/canmanage}}
     {{/inpopup}}
     {{/courseurl}}
 
@@ -186,7 +238,6 @@
                     <span id="vt-progress-text" class="vt-progress-text" style="font-size: 1rem; font-weight: 700; line-height: 1;">{{currentpercent}}%</span>
                 </div>
             </div>
-
             <div style="height: 10px; border-radius: 100px; background-color: #f1f5f9; overflow: hidden; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);">
                 <div id="vt-progress-bar" class="vt-progress-bar-fill" role="progressbar" style="height: 100%; width: {{currentpercent}}%; border-radius: 100px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);" aria-valuenow="{{currentpercent}}" aria-valuemin="0" aria-valuemax="100">
                 </div>
@@ -210,24 +261,35 @@
 require(['jquery'], function($) {
     var inPopup = {{#inpopup}}true{{/inpopup}}{{^inpopup}}false{{/inpopup}};
 
-    // Auto-resize parent course iframe accurately when rendered in inline embed mode
+    // Auto-resize parent course iframe accurately when rendered in inline embed or mobile popup mode
     var syncParentIframeHeight = function() {
+        var isFs = document.fullscreenElement || document.webkitFullscreenElement ||
+                   document.querySelector('.vt-player-wrapper.vt-is-fullscreen');
+        if (isFs) {
+            return;
+        }
         if (window.parent && window.parent !== window) {
             try {
                 document.body.style.margin = '0';
                 document.body.style.background = 'transparent';
-
                 if (inPopup) {
                     document.documentElement.style.overflowY = 'auto';
                     document.body.style.overflowY = 'auto';
-                    document.body.style.padding = '8px 12px 16px 12px';
+                    document.body.style.padding = '8px 10px 12px 10px';
+                    var popCard = document.querySelector('.videotrack-card');
+                    if (popCard && window.frameElement && window.parent.innerWidth <= 768) {
+                        var popRect = popCard.getBoundingClientRect();
+                        var popScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
+                        var popH = Math.ceil(popRect.bottom + popScroll) + 16;
+                        if (popH > 220) {
+                            window.frameElement.style.height = popH + 'px';
+                        }
+                    }
                     return;
                 }
-
                 document.documentElement.style.overflow = 'hidden';
                 document.body.style.overflow = 'hidden';
                 document.body.style.padding = '4px 0 16px 0';
-
                 var card = document.querySelector('.videotrack-card');
                 if (card) {
                     var rect = card.getBoundingClientRect();
@@ -264,7 +326,10 @@ require(['jquery'], function($) {
 
     window.videotrackResume = function() {
         var targetPercent = Number("{{currentpercent}}") || 0;
+        var savedSeconds = Number("{{highesttime}}") || 0;
         var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};
+
+        $('#vt-resume-overlay').fadeOut();
 
         if (!isYouTube) {
             var video = document.getElementById('videotrack-player');
@@ -272,12 +337,14 @@ require(['jquery'], function($) {
                 return;
             }
             var doResume = function() {
-                var targetTime = (targetPercent / 100) * video.duration;
+                var byPercent = video.duration > 0 ? (targetPercent / 100) * video.duration : 0;
+                var targetTime = Math.max(savedSeconds, byPercent);
+                if (window.videotrackAllowResumeTo) {
+                    window.videotrackAllowResumeTo(targetTime, targetPercent);
+                }
                 video.currentTime = targetTime;
                 video.play();
-                $('#vt-resume-overlay').fadeOut();
             };
-
             if (video.readyState >= 1) {
                 doResume();
             } else {
@@ -285,16 +352,34 @@ require(['jquery'], function($) {
                 video.load();
             }
         } else {
-            if (window.ytPlayer && window.ytPlayer.playVideo) {
-                window.ytPlayer.playVideo();
-                var checkInterval = setInterval(function() {
-                    var dur = window.ytPlayer.getDuration();
-                    if (dur && dur > 0) {
-                        clearInterval(checkInterval);
-                        window.ytPlayer.seekTo((targetPercent / 100) * dur, true);
-                        $('#vt-resume-overlay').fadeOut();
+            if (window.videotrackAllowResumeTo) {
+                window.videotrackAllowResumeTo(savedSeconds, targetPercent);
+            }
+            var attempts = 0;
+            var tryYtResume = function() {
+                attempts++;
+                if (window.ytPlayer && typeof window.ytPlayer.playVideo === 'function') {
+                    var dur = (typeof window.ytPlayer.getDuration === 'function') ? window.ytPlayer.getDuration() : 0;
+                    var byPercent = dur > 0 ? (targetPercent / 100) * dur : 0;
+                    var targetTime = Math.max(savedSeconds, byPercent);
+                    if (window.videotrackAllowResumeTo) {
+                        window.videotrackAllowResumeTo(targetTime, targetPercent);
                     }
-                }, 200);
+                    if (targetTime > 0 && dur > 0) {
+                        window.ytPlayer.seekTo(targetTime, true);
+                    }
+                    window.ytPlayer.playVideo();
+                    return true;
+                }
+                return false;
+            };
+
+            if (!tryYtResume()) {
+                var waitYt = setInterval(function() {
+                    if (tryYtResume() || attempts > 30) {
+                        clearInterval(waitYt);
+                    }
+                }, 150);
             }
         }
     };
@@ -316,7 +401,6 @@ require(['jquery'], function($) {
         }
     }
 });
-
 {{^isgdrive}}
 require(['mod_videotrack/reactions', 'mod_videotrack/controls'], function(reactions, controls) {
     var isYouTube = {{#isyoutube}}true{{/isyoutube}}{{^isyoutube}}false{{/isyoutube}};

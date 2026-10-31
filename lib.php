@@ -80,7 +80,7 @@ function videotrack_ensure_schema_columns(): void {
 }
 
 /**
- * Ensures course_modules.showdescription is enabled when displaymode is 1 or 2 so format_tiles exports content via AJAX.
+ * Synchronizes course_modules.showdescription when displaymode changes so format_tiles and standard formats stay in sync.
  *
  * @param int $cmid Course module ID.
  * @param int $displaymode Display mode (0, 1 or 2).
@@ -95,6 +95,79 @@ function videotrack_sync_cm_showdescription(int $cmid, int $displaymode): void {
             // Ignore if DB write is not permitted in current context.
         }
     }
+}
+
+/**
+ * Resolves thumbnail/preview media info for a videotrack instance to display inside popup cards.
+ *
+ * @param stdClass $vt Videotrack DB record.
+ * @param int $cmid Course module ID.
+ * @return array Array with keys 'thumbtype' ('image', 'video', or 'none') and 'thumburl'.
+ */
+function videotrack_resolve_subtile_thumb(stdClass $vt, int $cmid): array {
+    $url = trim((string)($vt->videourl ?? ''));
+
+    // 1. Check if an uploaded video file exists in Moodle file storage.
+    try {
+        $context = context_module::instance($cmid);
+        $fs = get_file_storage();
+        $files = $fs->get_area_files($context->id, 'mod_videotrack', 'video', 0, 'id DESC', false);
+        if (!empty($files)) {
+            $file = reset($files);
+            $fileurl = moodle_url::make_pluginfile_url(
+                $file->get_contextid(),
+                $file->get_component(),
+                $file->get_filearea(),
+                $file->get_itemid(),
+                $file->get_filepath(),
+                $file->get_filename()
+            )->out(false);
+            return [
+                'thumbtype' => 'video',
+                'thumburl' => $fileurl,
+            ];
+        }
+    } catch (Throwable $e) {
+        // Fallback to URL inspection.
+    }
+
+    if ($url === '') {
+        return ['thumbtype' => 'none', 'thumburl' => ''];
+    }
+
+    // 2. YouTube / YouTube Shorts URL.
+    if (preg_match('%(?:youtube(?:-nocookie)?[.]com/(?:[^/]+/.+/|(?:v|e(?:mbed)?|shorts)/|.*[?&]v=)|youtu[.]be/)([^"&?/ ]{11})%i', $url, $m)) {
+        return [
+            'thumbtype' => 'image',
+            'thumburl' => 'https://i.ytimg.com/vi/' . $m[1] . '/hqdefault.jpg',
+        ];
+    }
+
+    // 3. Google Drive URL.
+    if (strpos($url, 'drive.google.com') !== false) {
+        $fileid = '';
+        if (preg_match('#/file/d/([a-zA-Z0-9_-]+)#', $url, $m)) {
+            $fileid = $m[1];
+        } else if (preg_match('#[?&]id=([a-zA-Z0-9_-]+)#', $url, $m)) {
+            $fileid = $m[1];
+        }
+        if ($fileid !== '') {
+            return [
+                'thumbtype' => 'image',
+                'thumburl' => 'https://drive.google.com/thumbnail?id=' . $fileid . '&sz=w640',
+            ];
+        }
+    }
+
+    // 4. Direct MP4 / WebM URL (including extracted HeyGen links).
+    if (preg_match('/[.](mp4|webm|ogg|mov)($|[?])/i', $url)) {
+        return [
+            'thumbtype' => 'video',
+            'thumburl' => $url,
+        ];
+    }
+
+    return ['thumbtype' => 'none', 'thumburl' => ''];
 }
 
 /**
@@ -125,6 +198,25 @@ function videotrack_inject_course_js(int $courseid): void {
 
         $items = [];
         $preloadrules = [];
+
+        // Critical inline styles for the unified popup thumbnail card (bypasses any stale browser CSS cache).
+        $preloadrules[] = '.vt-popup-tile-card{width:260px!important;max-width:100%!important;margin:6px 0 10px 0!important;' .
+            'padding:0!important;background:#ffffff!important;border:1px solid #e2e8f0!important;border-radius:14px!important;' .
+            'overflow:hidden!important;cursor:pointer!important;box-shadow:0 4px 14px rgba(15,23,42,0.08)!important;' .
+            'transition:transform 0.2s ease,box-shadow 0.2s ease!important;display:block!important;}' .
+            '.vt-popup-tile-card:hover{transform:translateY(-2px)!important;' .
+            'box-shadow:0 10px 20px -4px rgba(15,23,42,0.14)!important;}' .
+            '.vt-popup-tile-thumb{position:relative!important;width:100%!important;height:134px!important;margin:0!important;' .
+            'padding:0!important;overflow:hidden!important;background:linear-gradient(135deg,#0f172a 0%,#1e2eb 100%)!important;' .
+            'border-radius:0!important;}' .
+            '.vt-popup-tile-thumb .vt-subtile-thumb-media{width:100%!important;height:100%!important;' .
+            'object-fit:cover!important;display:block!important;margin:0!important;padding:0!important;border:0!important;}' .
+            '.vt-popup-tile-card:hover .vt-subtile-thumb-media{transform:scale(1.05)!important;}' .
+            '.vt-popup-tile-card:hover .vt-subtile-play-badge{background:var(--vt-accent,#0ea5e9)!important;' .
+            'border-color:#ffffff!important;transform:scale(1.12)!important;}' .
+            '.vt-popup-tile-footer{padding:10px 14px 10px 14px!important;background:#ffffff!important;' .
+            'border-top:1px solid #f1f5f9!important;box-sizing:border-box!important;}';
+
         foreach ($cms as $instanceid => $cminfo) {
             if (!$cminfo->uservisible || !isset($records[$instanceid])) {
                 continue;
@@ -135,7 +227,12 @@ function videotrack_inject_course_js(int $courseid): void {
             $accent = ($rawaccent !== '') ? $rawaccent : '#0ea5e9';
             $prog = $DB->get_record('videotrack_progress', ['videotrackid' => $vt->id, 'userid' => $USER->id]);
             $pct = $prog ? (int)$prog->highestpercent : 0;
+            $lastsec = ($prog && !empty($prog->highesttime) && (float)$prog->highesttime > 1.5)
+                ? round((float)$prog->highesttime, 1)
+                : 2.5;
             $cid = (int)$cminfo->id;
+
+            $thumbinfo = ($mode === 1) ? videotrack_resolve_subtile_thumb($vt, $cid) : ['thumbtype' => 'none', 'thumburl' => ''];
 
             $items[$cid] = [
                 'cmid' => $cid,
@@ -143,13 +240,17 @@ function videotrack_inject_course_js(int $courseid): void {
                 'name' => format_string($vt->name),
                 'accent' => $accent,
                 'pct' => $pct,
+                'thumbsec' => $lastsec,
+                'thumbtype' => $thumbinfo['thumbtype'],
+                'thumburl' => $thumbinfo['thumburl'],
                 'watchlabel' => get_string('watchvideo', 'mod_videotrack'),
                 'progresslabel' => get_string('progresstitle', 'mod_videotrack'),
+                'viewurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cid]))->out(false),
                 'popupurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cid, 'inpopup' => 1]))->out(false),
                 'embedurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cid, 'embed' => 1]))->out(false),
             ];
 
-            if ($mode === 2) {
+            if ($mode === 1 || $mode === 2) {
                 $preloadrules[] = 'body:not(.editing) #module-' . $cid . ':not(.subtile) .activityiconcontainer,' .
                     'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-icon,' .
                     'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-name-area,' .
@@ -158,8 +259,10 @@ function videotrack_inject_course_js(int $courseid): void {
                     '{display:none!important;}' .
                     'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-altcontent,' .
                     'body:not(.editing) #module-' . $cid . ':not(.subtile) .description,' .
-                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-description' .
-                    '{border-top:0!important;padding-top:0!important;margin-top:0!important;}';
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-description,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .contentwithoutlink' .
+                    '{border-top:0!important;border-bottom:0!important;padding-top:0!important;' .
+                    'padding-left:0!important;margin-top:0!important;margin-left:0!important;}';
             }
         }
 
@@ -196,6 +299,9 @@ function videotrack_inject_course_js(int $courseid): void {
             'var ifr=m.querySelector("iframe");' .
             'if(ifr){' .
             'try{' .
+            'if(ifr.contentWindow&&typeof ifr.contentWindow.videotrackFlushProgress==="function"){' .
+            'ifr.contentWindow.videotrackFlushProgress();' .
+            '}' .
             'var doc=ifr.contentWindow?ifr.contentWindow.document:null;' .
             'var pctEl=doc?doc.getElementById("vt-progress-text"):null;' .
             'var cmid=m.id?parseInt(m.id.replace("vt-popup-modal-",""),10):0;' .
@@ -213,7 +319,7 @@ function videotrack_inject_course_js(int $courseid): void {
             '}' .
             '}' .
             '}catch(err){}' .
-            'ifr.src="about:blank";' .
+            '(function(targetIfr){setTimeout(function(){targetIfr.src="about:blank";},120);})(ifr);' .
             '}' .
             'm.style.display="none";' .
             '}' .
@@ -281,11 +387,32 @@ function videotrack_inject_course_js(int $courseid): void {
             'var cfg=window.vtCourseItems[cmid];' .
             'var li=findModuleLi(cmid);' .
             'if(!li)return;' .
-            'if(!li.classList.contains("subtile")){' .
-            'if(cfg.mode===2&&!li.classList.contains("vt-mode-inline-embed")){' .
-            'li.classList.add("vt-mode-inline-embed");' .
-            '}else if(cfg.mode===1&&!li.classList.contains("vt-mode-card-popup")){' .
-            'li.classList.add("vt-mode-card-popup");' .
+            'if(!li.classList.contains("subtile")&&!li.classList.contains("vt-tiles-fullwidth-row")){' .
+            'if(cfg.mode===2){' .
+            'li.classList.remove("vt-mode-card-popup");' .
+            'if(!li.classList.contains("vt-mode-inline-embed"))li.classList.add("vt-mode-inline-embed");' .
+            '}else if(cfg.mode===1){' .
+            'li.classList.remove("vt-mode-inline-embed");' .
+            'if(!li.classList.contains("vt-mode-card-popup"))li.classList.add("vt-mode-card-popup");' .
+            '}else{' .
+            'li.classList.remove("vt-mode-inline-embed","vt-mode-card-popup");' .
+            '}' .
+            'return;' .
+            '}' .
+            'if(cfg.mode===0){' .
+            'li.classList.remove("vt-enhanced-subtile","vt-mode-card-popup","vt-mode-inline-embed");' .
+            'delete li.dataset.vtUpgraded;' .
+            'var oldTw=li.querySelector(".vt-subtile-thumb-wrap");' .
+            'if(oldTw)oldTw.remove();' .
+            'var oldBw=li.querySelector(".vt-subtile-progress-wrap");' .
+            'if(oldBw)oldBw.remove();' .
+            'var oldCard=li.querySelector(".vt-popup-tile-card, .vt-course-card, .vt-course-inline-embed");' .
+            'if(oldCard)oldCard.remove();' .
+            'var lnks=li.querySelectorAll("a[onclick]");' .
+            'for(var k=0;k<lnks.length;k++){' .
+            'if((lnks[k].getAttribute("onclick")||"").indexOf("videotrackOpenPopup")!==-1){' .
+            'lnks[k].removeAttribute("onclick");' .
+            '}' .
             '}' .
             'return;' .
             '}' .
@@ -307,10 +434,45 @@ function videotrack_inject_course_js(int $courseid): void {
             'wrap.appendChild(ifr);' .
             'li.innerHTML="";' .
             'li.appendChild(wrap);' .
-            '}else{' .
+            '}else if(cfg.mode===1){' .
             'li.dataset.vtUpgraded="1";' .
             'li.classList.add("vt-enhanced-subtile");' .
             'li.style.setProperty("--vt-accent",cfg.accent);' .
+            'var tSec=cfg.thumbsec||2.5;' .
+            'var tw=document.createElement("div");' .
+            'tw.className="vt-subtile-thumb-wrap";' .
+            'if(cfg.thumbtype==="image"&&cfg.thumburl){' .
+            'var img=document.createElement("img");' .
+            'img.className="vt-subtile-thumb-media";' .
+            'img.src=cfg.thumburl;' .
+            'img.alt=cfg.name;' .
+            'img.loading="lazy";' .
+            'img.onerror=function(){this.style.display="none";tw.classList.add("vt-subtile-thumb-fallback");};' .
+            'tw.appendChild(img);' .
+            '}else if(cfg.thumbtype==="video"&&cfg.thumburl){' .
+            'var vid=document.createElement("video");' .
+            'vid.className="vt-subtile-thumb-media";' .
+            'vid.src=cfg.thumburl.indexOf("#")===-1?(cfg.thumburl+"#t="+tSec):cfg.thumburl;' .
+            'vid.muted=true;' .
+            'vid.playsInline=true;' .
+            'vid.preload="metadata";' .
+            'vid.setAttribute("muted","");' .
+            'vid.setAttribute("playsinline","");' .
+            'vid.addEventListener("loadeddata",function(){try{if(this.currentTime<0.2)this.currentTime=tSec;}catch(e){}});' .
+            'tw.appendChild(vid);' .
+            '}else{' .
+            'tw.classList.add("vt-subtile-thumb-fallback");' .
+            '}' .
+            'var ov=document.createElement("div");' .
+            'ov.className="vt-subtile-thumb-overlay";' .
+            'var pb=document.createElement("span");' .
+            'pb.className="vt-subtile-play-badge";' .
+            'var pbi=document.createElement("i");' .
+            'pbi.className="fa fa-play";' .
+            'pb.appendChild(pbi);' .
+            'ov.appendChild(pb);' .
+            'tw.appendChild(ov);' .
+            'li.appendChild(tw);' .
             'var bar=document.createElement("div");' .
             'bar.className="vt-subtile-progress-wrap";' .
             'var meta=document.createElement("div");' .
@@ -349,11 +511,18 @@ function videotrack_inject_course_js(int $courseid): void {
             'var cmid=0;' .
             'if(li.id&&li.id.indexOf("module-")===0){cmid=parseInt(li.id.replace("module-",""),10);}' .
             'if(!cmid&&li.dataset&&li.dataset.cmid){cmid=parseInt(li.dataset.cmid,10);}' .
-            'if(cmid&&window.vtCourseItems[cmid]&&window.vtCourseItems[cmid].mode===1){' .
+            'if(!cmid||!window.vtCourseItems[cmid])return;' .
+            'var itemCfg=window.vtCourseItems[cmid];' .
+            'if(itemCfg.mode===1){' .
             'ev.preventDefault();' .
             'ev.stopPropagation();' .
             'if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();' .
             'window.videotrackOpenPopup(cmid);' .
+            '}else if(itemCfg.mode===0&&li.classList.contains("subtile")){' .
+            'ev.preventDefault();' .
+            'ev.stopPropagation();' .
+            'if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();' .
+            'window.location.href=itemCfg.viewurl;' .
             '}' .
             '},true);' .
             'document.addEventListener("keydown",function(ev){' .
@@ -746,7 +915,7 @@ function videotrack_get_coursemodule_info($coursemodule) {
     $result = new cached_cm_info();
     $result->name = $videotrack->name;
 
-    if ($coursemodule->showdescription) {
+    if ($coursemodule->showdescription && trim((string)$videotrack->intro) !== '') {
         $result->content = format_module_intro('videotrack', $videotrack, $coursemodule->id, false);
     }
 
@@ -815,12 +984,12 @@ function videotrack_cm_info_view(cm_info $cm) {
         return;
     }
 
+    videotrack_inject_course_js((int)$cm->course);
+
     $displaymode = isset($videotrack->displaymode) ? (int)$videotrack->displaymode : 0;
     if ($displaymode === 0) {
         return;
     }
-
-    videotrack_inject_course_js((int)$cm->course);
 
     $rawaccent = videotrack_sanitize_accentcolor($videotrack->accentcolor ?? '');
     $accent = ($rawaccent !== '') ? $rawaccent : '#0ea5e9';
@@ -829,34 +998,53 @@ function videotrack_cm_info_view(cm_info $cm) {
         : '';
 
     if ($displaymode === 1) {
-        // Mode 1: Card on course page that opens the player in a clean modal popup.
+        // Mode 1: Exact format_tiles style Thumbnail Card that opens the player in a modal popup.
         $progress = $DB->get_record('videotrack_progress', ['videotrackid' => $videotrack->id, 'userid' => $USER->id]);
         $pct = $progress ? (int)$progress->highestpercent : 0;
+        $thumbsec = ($progress && !empty($progress->highesttime) && (float)$progress->highesttime > 1.5)
+            ? round((float)$progress->highesttime, 1)
+            : 2.5;
         $popupurl = (new moodle_url('/mod/videotrack/view.php', ['id' => $cm->id, 'inpopup' => 1]))->out(false);
-        $watchlabel = get_string('watchvideo', 'mod_videotrack');
-        $progresslabel = get_string('progresstitle', 'mod_videotrack');
         $modalid = 'vt-popup-modal-' . (int)$cm->id;
         $iframeid = 'vt-popup-iframe-' . (int)$cm->id;
         $cleanname = format_string($videotrack->name);
         $safetitleattr = s($cleanname);
+        $thumbinfo = videotrack_resolve_subtile_thumb($videotrack, (int)$cm->id);
+        $thumbtype = $thumbinfo['thumbtype'];
+        $thumburl = $thumbinfo['thumburl'];
+
+        $thumbmediahtml = '';
+        $thumbfallbackclass = '';
+        if ($thumbtype === 'image' && $thumburl !== '') {
+            $thumbmediahtml = '<img class="vt-subtile-thumb-media" src="' . s($thumburl) . '" ' .
+                'alt="' . $safetitleattr . '" loading="lazy" ' .
+                'onerror="this.style.display=\'none\';this.parentNode.classList.add(\'vt-subtile-thumb-fallback\');">';
+        } else if ($thumbtype === 'video' && $thumburl !== '') {
+            $videosrc = (strpos($thumburl, '#') === false) ? ($thumburl . '#t=' . $thumbsec) : $thumburl;
+            $thumbmediahtml = '<video class="vt-subtile-thumb-media" src="' . s($videosrc) . '" ' .
+                'muted playsinline preload="metadata" ' .
+                'onloadeddata="try{if(this.currentTime<0.2)this.currentTime=' . $thumbsec . ';}catch(e){}"></video>';
+        } else {
+            $thumbfallbackclass = ' vt-subtile-thumb-fallback';
+        }
 
         $html = $introhtml;
-        $html .= '<div class="vt-course-card" style="--vt-accent: ' . s($accent) . ';">';
-        $html .= '  <div class="vt-course-card-body">';
-        $html .= '    <button type="button" class="vt-course-card-play" ' .
+        $html .= '<div class="vt-popup-tile-card vt-course-card" style="--vt-accent: ' . s($accent) . ';" ' .
             'data-cmid="' . (int)$cm->id . '" data-modal="' . s($modalid) . '" data-iframe="' . s($iframeid) . '" ' .
-            'data-src="' . s($popupurl) . '" data-title="' . $safetitleattr . '" data-flex="flex" data-ov="hidden" ' .
+            'data-src="' . s($popupurl) . '" data-title="' . $safetitleattr . '" ' .
             'onclick="if(window.videotrackOpenPopup){return window.videotrackOpenPopup(this.dataset.cmid,this.dataset.src,this.dataset.title);}return false;">';
-        $html .= '      <span class="vt-course-play-circle"><i class="fa fa-play"></i></span>';
-        $html .= '      <span class="vt-course-play-text">' . s($watchlabel) . '</span>';
-        $html .= '    </button>';
-        $html .= '    <div class="vt-course-card-progress">';
-        $html .= '      <div class="vt-course-card-progress-top">';
-        $html .= '        <span>' . s($progresslabel) . '</span>';
-        $html .= '        <strong>' . $pct . '%</strong>';
-        $html .= '      </div>';
-        $html .= '      <div class="vt-course-card-bar"><div style="width:' . $pct . '%;background:' . s($accent) . ';"></div></div>';
+        $html .= '  <div class="vt-popup-tile-thumb vt-course-card-thumb' . $thumbfallbackclass . '">';
+        $html .= $thumbmediahtml;
+        $html .= '    <div class="vt-subtile-thumb-overlay">';
+        $html .= '      <span class="vt-subtile-play-badge"><i class="fa fa-play"></i></span>';
         $html .= '    </div>';
+        $html .= '  </div>';
+        $html .= '  <div class="vt-popup-tile-footer vt-course-card-footer">';
+        $html .= '    <div class="vt-course-card-progress-top">';
+        $html .= '      <span class="vt-course-card-video-title" title="' . $safetitleattr . '">' . $cleanname . '</span>';
+        $html .= '      <strong>' . $pct . '%</strong>';
+        $html .= '    </div>';
+        $html .= '    <div class="vt-course-card-bar"><div style="width:' . $pct . '%;background:' . s($accent) . ';"></div></div>';
         $html .= '  </div>';
         $html .= '</div>';
 

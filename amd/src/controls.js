@@ -57,10 +57,19 @@ define(['jquery'], function ($) {
                 if (!rawText) {
                     return cues;
                 }
-                var normalized = rawText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-                var blocks = normalized.split(/\n\s*\n/);
+                var bom = String.fromCharCode(0xFEFF);
+                var cr = String.fromCharCode(13);
+                var lf = String.fromCharCode(10);
+                var tab = String.fromCharCode(9);
+                var normalized = rawText;
+                if (normalized.indexOf(bom) === 0) {
+                    normalized = normalized.substring(1);
+                }
+                normalized = normalized.split(cr + lf).join(lf).split(cr).join(lf);
+                var blocks = normalized.split(new RegExp(lf + '[ ' + tab + ']*' + lf));
+                var wsRegex = new RegExp('[ ' + tab + ']+');
                 for (var i = 0; i < blocks.length; i++) {
-                    var lines = $.trim(blocks[i]).split('\n');
+                    var lines = $.trim(blocks[i]).split(lf);
                     if (lines.length === 0) {
                         continue;
                     }
@@ -75,10 +84,10 @@ define(['jquery'], function ($) {
                         var times = lines[timeLineIdx].split('-->');
                         if (times.length >= 2) {
                             var start = parseTimestamp(times[0]);
-                            var endPart = $.trim(times[1]).split(/\s+/)[0];
+                            var endPart = $.trim(times[1]).split(wsRegex)[0];
                             var end = parseTimestamp(endPart);
                             var textLines = lines.slice(timeLineIdx + 1);
-                            var cueText = $.trim(textLines.join('\n'));
+                            var cueText = $.trim(textLines.join(lf));
                             if (cueText !== '') {
                                 cues.push({
                                     start: start,
@@ -121,6 +130,17 @@ define(['jquery'], function ($) {
             };
 
             var updateTimeUI = function (currentTime, duration) {
+                var isResumeActive = $('#vt-resume-overlay').is(':visible');
+                if (isResumeActive) {
+                    var targetPercent = Number($('#vt-progress-text').text().replace('%', '')) || 0;
+                    seekSlider.val(targetPercent);
+                    seekSlider.css('--vt-progress', targetPercent + '%');
+                    var targetTime = duration > 0 ? (targetPercent / 100) * duration : 0;
+                    var hasHrs = duration >= 3600;
+                    timeDisplay.text(formatTime(targetTime, hasHrs) + ' / ' + formatTime(duration, hasHrs));
+                    return;
+                }
+
                 if (!isSeeking && duration > 0) {
                     var pct = (currentTime / duration) * 100;
                     seekSlider.val(pct);
@@ -136,7 +156,6 @@ define(['jquery'], function ($) {
                     return;
                 }
 
-                // Always keep native browser track hidden so we don't get double subtitles
                 if (video.textTracks && video.textTracks.length > 0) {
                     if (video.textTracks[0].mode !== 'hidden') {
                         video.textTracks[0].mode = 'hidden';
@@ -145,12 +164,13 @@ define(['jquery'], function ($) {
 
                 var ct = video.currentTime || 0;
                 var lines = [];
+                var lf = String.fromCharCode(10);
                 var i;
 
                 if (parsedCues.length > 0) {
                     for (i = 0; i < parsedCues.length; i++) {
                         if (ct >= parsedCues[i].start && ct <= parsedCues[i].end) {
-                            var safeParsed = $('<div>').text(parsedCues[i].text).html().replace(/\n/g, '<br>');
+                            var safeParsed = $('<div>').text(parsedCues[i].text).html().split(lf).join('<br>');
                             lines.push(safeParsed);
                         }
                     }
@@ -158,7 +178,7 @@ define(['jquery'], function ($) {
                     var activeCues = video.textTracks[0].activeCues;
                     for (i = 0; i < activeCues.length; i++) {
                         if (activeCues[i].text) {
-                            var safeNative = $('<div>').text(activeCues[i].text).html().replace(/\n/g, '<br>');
+                            var safeNative = $('<div>').text(activeCues[i].text).html().split(lf).join('<br>');
                             lines.push(safeNative);
                         }
                     }
@@ -172,9 +192,16 @@ define(['jquery'], function ($) {
             };
 
             var togglePlay = function () {
+                if ($('#vt-resume-overlay').is(':visible')) {
+                    if (window.videotrackResume) {
+                        window.videotrackResume();
+                    }
+                    return;
+                }
+
                 if (isYouTube && window.ytPlayer && window.ytPlayer.getPlayerState) {
                     var state = window.ytPlayer.getPlayerState();
-                    if (state === 1) { // Playing
+                    if (state === 1) {
                         window.ytPlayer.pauseVideo();
                     } else {
                         window.ytPlayer.playVideo();
@@ -217,22 +244,32 @@ define(['jquery'], function ($) {
                 renderActiveCues();
             };
 
+            var markFullscreenTransition = function () {
+                window.vtFullscreenTransitionUntil = Date.now() + 1200;
+                try {
+                    if (window.parent && window.parent !== window) {
+                        window.parent.vtFullscreenTransitionUntil = Date.now() + 1200;
+                    }
+                } catch (e) { }
+            };
+
             var toggleFullscreen = function () {
+                markFullscreenTransition();
                 if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
                     if (wrapper.requestFullscreen) {
                         wrapper.requestFullscreen();
-                    } else if (wrapper.webkitRequestFullscreen) { /* Safari */
+                    } else if (wrapper.webkitRequestFullscreen) {
                         wrapper.webkitRequestFullscreen();
-                    } else if (wrapper.msRequestFullscreen) { /* IE11 */
+                    } else if (wrapper.msRequestFullscreen) {
                         wrapper.msRequestFullscreen();
                     }
                     fullscreenBtn.find('i').removeClass('fa-expand').addClass('fa-compress');
                 } else {
                     if (document.exitFullscreen) {
                         document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) { /* Safari */
+                    } else if (document.webkitExitFullscreen) {
                         document.webkitExitFullscreen();
-                    } else if (document.msExitFullscreen) { /* IE11 */
+                    } else if (document.msExitFullscreen) {
                         document.msExitFullscreen();
                     }
                     fullscreenBtn.find('i').removeClass('fa-compress').addClass('fa-expand');
@@ -298,7 +335,6 @@ define(['jquery'], function ($) {
                     $(wrapper).append(errorDiv);
                 });
 
-                // Clicking the video should also toggle play/pause
                 $(video).on('click', togglePlay);
 
                 video.addEventListener('play', function () {
@@ -328,7 +364,7 @@ define(['jquery'], function ($) {
                 setInterval(function () {
                     if (window.ytPlayer && window.ytPlayer.getPlayerState) {
                         var state = window.ytPlayer.getPlayerState();
-                        if (state === 1) { // Playing
+                        if (state === 1) {
                             playPauseIcon.removeClass('fa-play').addClass('fa-pause');
                             $(wrapper).removeClass('vt-is-paused');
                         } else {
@@ -340,7 +376,7 @@ define(['jquery'], function ($) {
                         var dur = window.ytPlayer.getDuration() || 0;
                         updateTimeUI(ct, dur);
                     }
-                }, 500);
+                }, 300);
             }
 
             // Show/hide controls smoothly (Touch & Mouse)
@@ -371,6 +407,7 @@ define(['jquery'], function ($) {
 
             // Fullscreen change listener to update icon and CSS classes
             var handleFsChange = function () {
+                markFullscreenTransition();
                 var isFs = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
                 if (isFs) {
                     $(wrapper).addClass('vt-is-fullscreen');

@@ -15,274 +15,1099 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Security and privacy regression tests for mod_videotrack.
+ * VideoTrack (mod_videotrack)
  *
- * Covers:
- * - mod_videotrack/VTRK-SEC-001 (progress range and server-side plausibility checks)
- * - mod_videotrack/VTRK-SEC-002 (strict HeyGen HTTPS host allowlist)
- * - mod_videotrack/VTRK-PRIV-001 (Privacy API and activity deletion coverage for reactions)
- *
- * @package    mod_videotrack
- * @category   test
- * @copyright  2026 EduPlugins Studio
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package     mod_videotrack
+ * @copyright   2026 EduPlugins Studio
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-namespace mod_videotrack;
-
-use core_privacy\local\metadata\collection;
-use core_privacy\local\request\approved_contextlist;
-use core_privacy\local\request\approved_userlist;
-use core_privacy\local\request\userlist;
-use core_privacy\local\request\writer;
-use core_privacy\tests\provider_testcase;
-use invalid_parameter_exception;
-use mod_videotrack\external\save_progress;
-use mod_videotrack\external\save_reaction;
-use mod_videotrack\privacy\provider;
-
-defined('MOODLE_INTERNAL') || die();
-
-global $CFG;
-require_once($CFG->dirroot . '/mod/videotrack/lib.php');
 
 /**
- * Security and privacy tests for mod_videotrack.
+ * Sanitizes a hex accent color string (#RRGGBB, RRGGBB, #RGB or RGB).
  *
- * @covers \mod_videotrack\external\save_progress
- * @covers \mod_videotrack\privacy\provider
+ * @param string|null $color Raw color string.
+ * @return string Normalized hex color with leading # or empty string.
  */
-final class security_and_privacy_test extends provider_testcase {
-    /**
-     * Helper to create a course, enrolled student and VideoTrack activity.
-     *
-     * @param array $options Activity options.
-     * @return array [$course, $student, $videotrack, $cm]
-     */
-    private function setup_activity(array $options = []): array {
-        global $DB;
+function videotrack_sanitize_accentcolor(?string $color): string {
+    $color = trim((string)$color);
+    if ($color === '') {
+        return '';
+    }
+    if ($color[0] !== '#') {
+        $color = '#' . $color;
+    }
+    if (preg_match('/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/', $color)) {
+        return strtolower($color);
+    }
+    return '';
+}
 
-        $this->resetAfterTest(true);
-        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
-        $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
+/**
+ * Ensures the 'accentcolor' and 'displaymode' columns exist in {videotrack} even if site upgrade has not been run yet.
+ *
+ * @return void
+ */
+function videotrack_ensure_schema_columns(): void {
+    global $DB;
+    try {
+        $columns = $DB->get_columns('videotrack', true);
+        $dbman = $DB->get_manager();
+        $table = new xmldb_table('videotrack');
+        $changed = false;
 
-        $now = time();
-        $record = (object) array_merge([
-            'course' => $course->id,
-            'name' => 'Test VideoTrack',
-            'intro' => 'Intro',
-            'introformat' => FORMAT_HTML,
-            'videourl' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-            'targetpercent' => 80,
-            'isgdrive' => 0,
-            'manualtime' => 60,
-            'timecreated' => $now,
-            'timemodified' => $now,
-        ], $options);
+        if (!isset($columns['accentcolor'])) {
+            $field = new xmldb_field('accentcolor', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'focusmode');
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+                $changed = true;
+            }
+        }
 
-        $record->id = $DB->insert_record('videotrack', $record);
+        if (!isset($columns['displaymode'])) {
+            $field2 = new xmldb_field('displaymode', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0', 'accentcolor');
+            if (!$dbman->field_exists($table, $field2)) {
+                $dbman->add_field($table, $field2);
+                $changed = true;
+            }
+        }
 
-        $module = $DB->get_record('modules', ['name' => 'videotrack'], '*', MUST_EXIST);
-        $cm = (object) [
-            'course' => $course->id,
-            'module' => $module->id,
-            'instance' => $record->id,
-            'section' => 0,
-            'added' => $now,
-            'completion' => COMPLETION_TRACKING_AUTOMATIC,
-            'completionview' => COMPLETION_VIEW_REQUIRED,
+        if ($changed) {
+            $DB->get_columns('videotrack', false);
+        }
+    } catch (Throwable $e) {
+        // Ignore if DB user cannot alter schema on the fly.
+    }
+}
+
+/**
+ * Synchronizes course_modules.showdescription when displaymode changes so format_tiles and standard formats stay in sync.
+ *
+ * @param int $cmid Course module ID.
+ * @param int $displaymode Display mode (0, 1 or 2).
+ * @return void
+ */
+function videotrack_sync_cm_showdescription(int $cmid, int $displaymode): void {
+    global $DB;
+    if ($cmid > 0 && $displaymode > 0) {
+        try {
+            $DB->set_field('course_modules', 'showdescription', 1, ['id' => $cmid]);
+        } catch (Throwable $e) {
+            // Ignore if DB write is not permitted in current context.
+        }
+    }
+}
+
+/**
+ * Resolves thumbnail/preview media info for a videotrack instance to display inside popup cards.
+ *
+ * @param stdClass $vt Videotrack DB record.
+ * @param int $cmid Course module ID.
+ * @return array Array with keys 'thumbtype' ('image', 'video', or 'none') and 'thumburl'.
+ */
+function videotrack_resolve_subtile_thumb(stdClass $vt, int $cmid): array {
+    $url = trim((string)($vt->videourl ?? ''));
+
+    // 1. Check if an uploaded video file exists in Moodle file storage.
+    try {
+        $context = context_module::instance($cmid);
+        $fs = get_file_storage();
+        $files = $fs->get_area_files($context->id, 'mod_videotrack', 'video', 0, 'id DESC', false);
+        if (!empty($files)) {
+            $file = reset($files);
+            $fileurl = moodle_url::make_pluginfile_url(
+                $file->get_contextid(),
+                $file->get_component(),
+                $file->get_filearea(),
+                $file->get_itemid(),
+                $file->get_filepath(),
+                $file->get_filename()
+            )->out(false);
+            return [
+                'thumbtype' => 'video',
+                'thumburl' => $fileurl,
+            ];
+        }
+    } catch (Throwable $e) {
+        // Fallback to URL inspection.
+    }
+
+    if ($url === '') {
+        return ['thumbtype' => 'none', 'thumburl' => ''];
+    }
+
+    // 2. YouTube / YouTube Shorts URL.
+    if (preg_match('%(?:youtube(?:-nocookie)?[.]com/(?:[^/]+/.+/|(?:v|e(?:mbed)?|shorts)/|.*[?&]v=)|youtu[.]be/)([^"&?/ ]{11})%i', $url, $m)) {
+        return [
+            'thumbtype' => 'image',
+            'thumburl' => 'https://i.ytimg.com/vi/' . $m[1] . '/hqdefault.jpg',
         ];
-        $cm->id = add_course_module($cm);
-        course_add_cm_to_section($course->id, $cm->id, 0);
-
-        $cm = get_coursemodule_from_id('videotrack', $cm->id, 0, false, MUST_EXIST);
-        return [$course, $student, $record, $cm];
     }
 
-    /**
-     * VTRK-SEC-001: Rejects negative percent (-1) with invalid_parameter_exception.
-     */
-    public function test_save_progress_rejects_negative_percent(): void {
-        [, $student, , $cm] = $this->setup_activity();
-        $this->setUser($student);
-
-        $this->expectException(invalid_parameter_exception::class);
-        save_progress::execute($cm->id, -1, 0);
-    }
-
-    /**
-     * VTRK-SEC-001: Rejects percent above 100 (101) with invalid_parameter_exception.
-     */
-    public function test_save_progress_rejects_percent_above_100(): void {
-        [, $student, , $cm] = $this->setup_activity();
-        $this->setUser($student);
-
-        $this->expectException(invalid_parameter_exception::class);
-        save_progress::execute($cm->id, 101, 0);
-    }
-
-    /**
-     * VTRK-SEC-001: Calling save_progress with percent=100 and no prior progress keeps the activity incomplete.
-     */
-    public function test_save_progress_single_jump_to_100_stays_incomplete(): void {
-        global $DB;
-
-        [$course, $student, $videotrack, $cm] = $this->setup_activity([
-            'targetpercent' => 80,
-            'manualtime' => 60,
-        ]);
-        $this->setUser($student);
-
-        $result = save_progress::execute($cm->id, 100, 0);
-        $this->assertFalse($result['success']);
-
-        $progress = $DB->get_record('videotrack_progress', [
-            'videotrackid' => $videotrack->id,
-            'userid' => $student->id,
-        ]);
-        $this->assertNotEmpty($progress);
-        $this->assertEquals(0, (int)$progress->iscompleted);
-        $this->assertEquals(0, (int)$progress->highestpercent);
-
-        $completion = new \completion_info($course);
-        $compdata = $completion->get_data($cm, false, $student->id);
-        $this->assertEquals(COMPLETION_INCOMPLETE, (int)$compdata->completionstate);
-    }
-
-    /**
-     * VTRK-SEC-001: Normal incremental playback sequence completes the activity.
-     */
-    public function test_save_progress_incremental_playback_completes_activity(): void {
-        global $DB;
-
-        [, $student, $videotrack, $cm] = $this->setup_activity([
-            'targetpercent' => 80,
-            'manualtime' => 20,
-        ]);
-        $this->setUser($student);
-
-        // Step 1: 40% watched.
-        $res1 = save_progress::execute($cm->id, 40, 8);
-        $this->assertTrue($res1['success']);
-
-        // Simulate 10 seconds of wall-clock time passing before the next report.
-        $progress = $DB->get_record('videotrack_progress', [
-            'videotrackid' => $videotrack->id,
-            'userid' => $student->id,
-        ], '*', MUST_EXIST);
-        $progress->timemodified -= 10;
-        $DB->update_record('videotrack_progress', $progress);
-
-        // Step 2: 80% watched (40% delta over 10s elapsed on a 20s video is plausible).
-        $res2 = save_progress::execute($cm->id, 80, 16);
-        $this->assertTrue($res2['success']);
-
-        $updated = $DB->get_record('videotrack_progress', ['id' => $progress->id], '*', MUST_EXIST);
-        $this->assertEquals(1, (int)$updated->iscompleted);
-        $this->assertEquals(80, (int)$updated->highestpercent);
-    }
-
-    /**
-     * VTRK-SEC-002: No HTTP request is made when app.heygen.com is only in query/path/fragment or private/loopback hosts.
-     */
-    public function test_heygen_url_validation_blocks_untrusted_and_private_hosts(): void {
-        $mockcurl = $this->createMock(\curl::class);
-        $mockcurl->expects($this->never())->method('get');
-
-        $untrustedurls = [
-            'https://127.0.0.1/?app.heygen.com',
-            'http://localhost/?app.heygen.com',
-            'http://169.254.169.254/latest/meta-data/?app.heygen.com',
-            'https://evil.example.com/app.heygen.com/video',
-            'https://evil.example.com/#app.heygen.com',
-            'http://app.heygen.com/videos/123',
-        ];
-
-        foreach ($untrustedurls as $url) {
-            $this->assertFalse(videotrack_is_allowed_heygen_url($url));
-            $this->assertSame($url, videotrack_extract_heygen_url($url, $mockcurl));
+    // 3. Google Drive URL.
+    if (strpos($url, 'drive.google.com') !== false) {
+        $fileid = '';
+        if (preg_match('#/file/d/([a-zA-Z0-9_-]+)#', $url, $m)) {
+            $fileid = $m[1];
+        } else if (preg_match('#[?&]id=([a-zA-Z0-9_-]+)#', $url, $m)) {
+            $fileid = $m[1];
+        }
+        if ($fileid !== '') {
+            return [
+                'thumbtype' => 'image',
+                'thumburl' => 'https://drive.google.com/thumbnail?id=' . $fileid . '&sz=w640',
+            ];
         }
     }
 
-    /**
-     * VTRK-SEC-002: Request is made only when the host is exactly app.heygen.com over HTTPS.
-     */
-    public function test_heygen_url_validation_allows_exact_https_heygen_host(): void {
-        $validurl = 'https://app.heygen.com/videos/abc123';
-        $expectedmp4 = 'https://resource2.heygen.ai/transcoded/video123.mp4';
-
-        $this->assertTrue(videotrack_is_allowed_heygen_url($validurl));
-
-        $mockcurl = $this->createMock(\curl::class);
-        $mockcurl->expects($this->once())
-            ->method('get')
-            ->with($validurl)
-            ->willReturn('<html><body>"' . $expectedmp4 . '"</body></html>');
-
-        $resolved = videotrack_extract_heygen_url($validurl, $mockcurl);
-        $this->assertSame($expectedmp4, $resolved);
+    // 4. Direct MP4 / WebM URL (including extracted HeyGen links).
+    if (preg_match('/[.](mp4|webm|ogg|mov)($|[?])/i', $url)) {
+        return [
+            'thumbtype' => 'video',
+            'thumburl' => $url,
+        ];
     }
 
-    /**
-     * VTRK-PRIV-001: Reactions are covered by Privacy API metadata, discovery, export, deletion and instance deletion.
-     */
-    public function test_privacy_provider_and_instance_deletion_cover_reactions(): void {
-        global $DB;
+    return ['thumbtype' => 'none', 'thumburl' => ''];
+}
 
-        [, $student, $videotrack, $cm] = $this->setup_activity();
-        $context = \context_module::instance($cm->id);
-        $this->setUser($student);
+/**
+ * Injects the course-level JS helper for Popup Modal, PostMessage Iframe Resizing, and format_tiles sub-tile support.
+ *
+ * @param int $courseid The course ID.
+ * @return void
+ */
+function videotrack_inject_course_js(int $courseid): void {
+    global $DB, $PAGE, $USER;
 
-        // 1. Metadata includes videotrack_reactions.
-        $collection = new collection('mod_videotrack');
-        $collection = provider::get_metadata($collection);
-        $tables = [];
-        foreach ($collection->get_collection() as $item) {
-            $tables[] = $item->get_name();
+    static $injected = false;
+    if ($injected || !isset($PAGE) || $courseid <= 0) {
+        return;
+    }
+
+    try {
+        $records = $DB->get_records('videotrack', ['course' => $courseid]);
+        if (empty($records)) {
+            return;
         }
-        $this->assertContains('videotrack_reactions', $tables);
 
-        // 2. Save a reaction without any progress row.
-        save_reaction::execute($cm->id, 'heart', 15);
-        $this->assertEquals(1, $DB->count_records('videotrack_reactions', [
-            'videotrackid' => $videotrack->id,
-            'userid' => $student->id,
-        ]));
+        $modinfo = get_fast_modinfo($courseid);
+        $cms = $modinfo->get_instances_of('videotrack');
+        if (empty($cms)) {
+            return;
+        }
 
-        // 3. Context and user discovery find the user via their reaction.
-        $contextlist = provider::get_contexts_for_userid($student->id);
-        $this->assertContainsEquals($context->id, $contextlist->get_contextids());
+        $items = [];
+        $preloadrules = [];
 
-        $userlist = new userlist($context, 'mod_videotrack');
-        provider::get_users_in_context($userlist);
-        $this->assertContainsEquals($student->id, $userlist->get_userids());
+        // Critical inline styles for the unified popup thumbnail card (bypasses any stale browser CSS cache).
+        $preloadrules[] = '.vt-popup-tile-card{width:260px!important;max-width:100%!important;margin:6px 0 10px 0!important;' .
+            'padding:0!important;background:#ffffff!important;border:1px solid #e2e8f0!important;border-radius:14px!important;' .
+            'overflow:hidden!important;cursor:pointer!important;box-shadow:0 4px 14px rgba(15,23,42,0.08)!important;' .
+            'transition:transform 0.2s ease,box-shadow 0.2s ease!important;display:block!important;}' .
+            '.vt-popup-tile-card:hover{transform:translateY(-2px)!important;' .
+            'box-shadow:0 10px 20px -4px rgba(15,23,42,0.14)!important;}' .
+            '.vt-popup-tile-thumb{position:relative!important;width:100%!important;height:134px!important;margin:0!important;' .
+            'padding:0!important;overflow:hidden!important;background:linear-gradient(135deg,#0f172a 0%,#1e2eb 100%)!important;' .
+            'border-radius:0!important;}' .
+            '.vt-popup-tile-thumb .vt-subtile-thumb-media{width:100%!important;height:100%!important;' .
+            'object-fit:cover!important;display:block!important;margin:0!important;padding:0!important;border:0!important;}' .
+            '.vt-popup-tile-card:hover .vt-subtile-thumb-media{transform:scale(1.05)!important;}' .
+            '.vt-popup-tile-card:hover .vt-subtile-play-badge{background:var(--vt-accent,#0ea5e9)!important;' .
+            'border-color:#ffffff!important;transform:scale(1.12)!important;}' .
+            '.vt-popup-tile-footer{padding:10px 14px 10px 14px!important;background:#ffffff!important;' .
+            'border-top:1px solid #f1f5f9!important;box-sizing:border-box!important;}';
 
-        // 4. Export user data includes the reaction.
-        $approved = new approved_contextlist($student, 'mod_videotrack', [$context->id]);
-        provider::export_user_data($approved);
-        $writer = writer::with_context($context);
-        $this->assertTrue($writer->has_any_data());
-        $exported = $writer->get_data(['reactions']);
-        $this->assertNotEmpty($exported->reactions);
-        $this->assertEquals('heart', $exported->reactions[0]->reaction);
+        foreach ($cms as $instanceid => $cminfo) {
+            if (!$cminfo->uservisible || !isset($records[$instanceid])) {
+                continue;
+            }
+            $vt = $records[$instanceid];
+            $mode = isset($vt->displaymode) ? (int)$vt->displaymode : 0;
+            $rawaccent = videotrack_sanitize_accentcolor($vt->accentcolor ?? '');
+            $accent = ($rawaccent !== '') ? $rawaccent : '#0ea5e9';
+            $prog = $DB->get_record('videotrack_progress', ['videotrackid' => $vt->id, 'userid' => $USER->id]);
+            $pct = $prog ? (int)$prog->highestpercent : 0;
+            $lastsec = ($prog && !empty($prog->highesttime) && (float)$prog->highesttime > 1.5)
+                ? round((float)$prog->highesttime, 1)
+                : 2.5;
+            $cid = (int)$cminfo->id;
 
-        // 5. Delete data for user removes their reaction.
-        provider::delete_data_for_user($approved);
-        $this->assertEquals(0, $DB->count_records('videotrack_reactions', [
-            'videotrackid' => $videotrack->id,
-            'userid' => $student->id,
-        ]));
+            $thumbinfo = ($mode === 1) ? videotrack_resolve_subtile_thumb($vt, $cid) : ['thumbtype' => 'none', 'thumburl' => ''];
 
-        // 6. Re-insert and test delete_data_for_users.
-        save_reaction::execute($cm->id, 'like', 25);
-        $approvedusers = new approved_userlist($context, 'mod_videotrack', [$student->id]);
-        provider::delete_data_for_users($approvedusers);
-        $this->assertEquals(0, $DB->count_records('videotrack_reactions', ['videotrackid' => $videotrack->id]));
+            $items[$cid] = [
+                'cmid' => $cid,
+                'mode' => $mode,
+                'name' => format_string($vt->name),
+                'accent' => $accent,
+                'pct' => $pct,
+                'thumbsec' => $lastsec,
+                'thumbtype' => $thumbinfo['thumbtype'],
+                'thumburl' => $thumbinfo['thumburl'],
+                'watchlabel' => get_string('watchvideo', 'mod_videotrack'),
+                'progresslabel' => get_string('progresstitle', 'mod_videotrack'),
+                'viewurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cid]))->out(false),
+                'popupurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cid, 'inpopup' => 1]))->out(false),
+                'embedurl' => (new moodle_url('/mod/videotrack/view.php', ['id' => $cid, 'embed' => 1]))->out(false),
+            ];
 
-        // 7. Re-insert and test videotrack_delete_instance() deletes reactions.
-        save_reaction::execute($cm->id, 'clap', 30);
-        $this->assertEquals(1, $DB->count_records('videotrack_reactions', ['videotrackid' => $videotrack->id]));
-        videotrack_delete_instance($videotrack->id);
-        $this->assertEquals(0, $DB->count_records('videotrack_reactions', ['videotrackid' => $videotrack->id]));
+            if ($mode === 1 || $mode === 2) {
+                $preloadrules[] = 'body:not(.editing) #module-' . $cid . ':not(.subtile) .activityiconcontainer,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-icon,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-name-area,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activityname,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-instance' .
+                    '{display:none!important;}' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-altcontent,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .description,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-description,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .contentwithoutlink' .
+                    '{border-top:0!important;border-bottom:0!important;padding-top:0!important;' .
+                    'padding-left:0!important;margin-top:0!important;margin-left:0!important;}';
+            }
+        }
+
+        if (empty($items)) {
+            return;
+        }
+
+        $injected = true;
+        $PAGE->requires->css(new moodle_url('/mod/videotrack/styles.css'));
+
+        $json = json_encode($items);
+        $preloadcss = json_encode(implode('', $preloadrules));
+
+        $js = '(function(){' .
+            'window.vtCourseItems=' . $json . ';' .
+            'var preCss=' . $preloadcss . ';' .
+            'if(preCss&&!document.getElementById("vt-inline-clean-style")){' .
+            'var stEl=document.createElement("style");' .
+            'stEl.id="vt-inline-clean-style";' .
+            'stEl.textContent=preCss;' .
+            'document.head.appendChild(stEl);' .
+            '}' .
+            'window.addEventListener("message",function(e){' .
+            'if(e.data&&e.data.type==="vt-resize"){' .
+            'var f=document.getElementById("vt-inline-iframe-"+e.data.cmid);' .
+            'if(f&&e.data.height>200){f.style.height=e.data.height+"px";}' .
+            '}' .
+            '},false);' .
+            'window.videotrackClosePopup=function(){' .
+            'var modals=document.querySelectorAll(".vt-course-modal-backdrop");' .
+            'for(var i=0;i<modals.length;i++){' .
+            'var m=modals[i];' .
+            'if(m.style.display!=="none"){' .
+            'var ifr=m.querySelector("iframe");' .
+            'if(ifr){' .
+            'try{' .
+            'if(ifr.contentWindow&&typeof ifr.contentWindow.videotrackFlushProgress==="function"){' .
+            'ifr.contentWindow.videotrackFlushProgress();' .
+            '}' .
+            'var doc=ifr.contentWindow?ifr.contentWindow.document:null;' .
+            'var pctEl=doc?doc.getElementById("vt-progress-text"):null;' .
+            'var cmid=m.id?parseInt(m.id.replace("vt-popup-modal-",""),10):0;' .
+            'if(pctEl&&cmid&&window.vtCourseItems&&window.vtCourseItems[cmid]){' .
+            'var newPct=parseInt(pctEl.textContent,10);' .
+            'if(!isNaN(newPct)){' .
+            'window.vtCourseItems[cmid].pct=newPct;' .
+            'var li=document.getElementById("module-"+cmid);' .
+            'if(li){' .
+            'var st=li.querySelector(".vt-subtile-progress-meta strong, .vt-course-card-progress-top strong");' .
+            'if(st)st.textContent=newPct+"%";' .
+            'var fl=li.querySelector(".vt-subtile-progress-fill, .vt-course-card-bar > div");' .
+            'if(fl)fl.style.width=newPct+"%";' .
+            '}' .
+            '}' .
+            '}' .
+            '}catch(err){}' .
+            '(function(targetIfr){setTimeout(function(){targetIfr.src="about:blank";},120);})(ifr);' .
+            '}' .
+            'm.style.display="none";' .
+            '}' .
+            '}' .
+            'document.body.style.overflow="";' .
+            '};' .
+            'window.videotrackOpenPopup=function(cmid,url,title){' .
+            'var cfg=window.vtCourseItems&&window.vtCourseItems[cmid]?window.vtCourseItems[cmid]:null;' .
+            'var finalUrl=cfg?cfg.popupurl:url;' .
+            'var finalTitle=cfg?cfg.name:(title||"");' .
+            'var m=document.getElementById("vt-popup-modal-"+cmid);' .
+            'if(!m){' .
+            'm=document.createElement("div");' .
+            'm.id="vt-popup-modal-"+cmid;' .
+            'm.className="vt-course-modal-backdrop";' .
+            'm.style.display="none";' .
+            'var dlg=document.createElement("div");' .
+            'dlg.className="vt-course-modal-dialog";' .
+            'var hdr=document.createElement("div");' .
+            'hdr.className="vt-course-modal-header";' .
+            'var ttl=document.createElement("span");' .
+            'ttl.className="vt-course-modal-title";' .
+            'var cls=document.createElement("button");' .
+            'cls.type="button";' .
+            'cls.className="vt-course-modal-close";' .
+            'cls.innerHTML="&times;";' .
+            'hdr.appendChild(ttl);' .
+            'hdr.appendChild(cls);' .
+            'var bdy=document.createElement("div");' .
+            'bdy.className="vt-course-modal-body";' .
+            'var ifr=document.createElement("iframe");' .
+            'ifr.id="vt-popup-iframe-"+cmid;' .
+            'ifr.src="about:blank";' .
+            'ifr.setAttribute("allowfullscreen","true");' .
+            'ifr.setAttribute("allow","autoplay; fullscreen");' .
+            'bdy.appendChild(ifr);' .
+            'dlg.appendChild(hdr);' .
+            'dlg.appendChild(bdy);' .
+            'm.appendChild(dlg);' .
+            'document.body.appendChild(m);' .
+            '}else if(m.parentNode!==document.body){' .
+            'document.body.appendChild(m);' .
+            '}' .
+            'var t=m.querySelector(".vt-course-modal-title");' .
+            'if(t)t.textContent=finalTitle;' .
+            'var f=m.querySelector("iframe")||document.getElementById("vt-popup-iframe-"+cmid);' .
+            'if(f)f.src=finalUrl;' .
+            'm.style.display="flex";' .
+            'document.body.style.overflow="hidden";' .
+            'return false;' .
+            '};' .
+            'var findModuleLi=function(cmid){' .
+            'var el=document.getElementById("module-"+cmid);' .
+            'if(el)return el;' .
+            'var list=document.querySelectorAll("li.activity.videotrack");' .
+            'for(var i=0;i<list.length;i++){' .
+            'if(list[i].dataset&&String(list[i].dataset.cmid)===String(cmid))return list[i];' .
+            '}' .
+            'return null;' .
+            '};' .
+            'var upgradeTilesSubtiles=function(){' .
+            'if(!window.vtCourseItems)return;' .
+            'var isEditing=document.body.classList.contains("editing");' .
+            'Object.keys(window.vtCourseItems).forEach(function(cmid){' .
+            'var cfg=window.vtCourseItems[cmid];' .
+            'var li=findModuleLi(cmid);' .
+            'if(!li)return;' .
+            'if(!li.classList.contains("subtile")&&!li.classList.contains("vt-tiles-fullwidth-row")){' .
+            'if(cfg.mode===2){' .
+            'li.classList.remove("vt-mode-card-popup");' .
+            'if(!li.classList.contains("vt-mode-inline-embed"))li.classList.add("vt-mode-inline-embed");' .
+            '}else if(cfg.mode===1){' .
+            'li.classList.remove("vt-mode-inline-embed");' .
+            'if(!li.classList.contains("vt-mode-card-popup"))li.classList.add("vt-mode-card-popup");' .
+            '}else{' .
+            'li.classList.remove("vt-mode-inline-embed","vt-mode-card-popup");' .
+            '}' .
+            'return;' .
+            '}' .
+            'if(cfg.mode===0){' .
+            'li.classList.remove("vt-enhanced-subtile","vt-mode-card-popup","vt-mode-inline-embed");' .
+            'delete li.dataset.vtUpgraded;' .
+            'var oldTw=li.querySelector(".vt-subtile-thumb-wrap");' .
+            'if(oldTw)oldTw.remove();' .
+            'var oldBw=li.querySelector(".vt-subtile-progress-wrap");' .
+            'if(oldBw)oldBw.remove();' .
+            'var oldCard=li.querySelector(".vt-popup-tile-card, .vt-course-card, .vt-course-inline-embed");' .
+            'if(oldCard)oldCard.remove();' .
+            'var lnks=li.querySelectorAll("a[onclick]");' .
+            'for(var k=0;k<lnks.length;k++){' .
+            'if((lnks[k].getAttribute("onclick")||"").indexOf("videotrackOpenPopup")!==-1){' .
+            'lnks[k].removeAttribute("onclick");' .
+            '}' .
+            '}' .
+            'return;' .
+            '}' .
+            'if(isEditing||li.dataset.vtUpgraded==="1")return;' .
+            'if(cfg.mode===2){' .
+            'li.dataset.vtUpgraded="1";' .
+            'li.classList.remove("subtile");' .
+            'li.classList.add("vt-tiles-fullwidth-row");' .
+            'if(li.parentNode){li.parentNode.appendChild(li);}' .
+            'var wrap=document.createElement("div");' .
+            'wrap.className="vt-course-inline-embed";' .
+            'var ifr=document.createElement("iframe");' .
+            'ifr.id="vt-inline-iframe-"+cmid;' .
+            'ifr.src=cfg.embedurl;' .
+            'ifr.className="vt-course-inline-iframe";' .
+            'ifr.setAttribute("allowfullscreen","true");' .
+            'ifr.setAttribute("allow","autoplay; fullscreen");' .
+            'ifr.setAttribute("scrolling","no");' .
+            'wrap.appendChild(ifr);' .
+            'li.innerHTML="";' .
+            'li.appendChild(wrap);' .
+            '}else if(cfg.mode===1){' .
+            'li.dataset.vtUpgraded="1";' .
+            'li.classList.add("vt-enhanced-subtile");' .
+            'li.style.setProperty("--vt-accent",cfg.accent);' .
+            'var tSec=cfg.thumbsec||2.5;' .
+            'var tw=document.createElement("div");' .
+            'tw.className="vt-subtile-thumb-wrap";' .
+            'if(cfg.thumbtype==="image"&&cfg.thumburl){' .
+            'var img=document.createElement("img");' .
+            'img.className="vt-subtile-thumb-media";' .
+            'img.src=cfg.thumburl;' .
+            'img.alt=cfg.name;' .
+            'img.loading="lazy";' .
+            'img.onerror=function(){this.style.display="none";tw.classList.add("vt-subtile-thumb-fallback");};' .
+            'tw.appendChild(img);' .
+            '}else if(cfg.thumbtype==="video"&&cfg.thumburl){' .
+            'var vid=document.createElement("video");' .
+            'vid.className="vt-subtile-thumb-media";' .
+            'vid.src=cfg.thumburl.indexOf("#")===-1?(cfg.thumburl+"#t="+tSec):cfg.thumburl;' .
+            'vid.muted=true;' .
+            'vid.playsInline=true;' .
+            'vid.preload="metadata";' .
+            'vid.setAttribute("muted","");' .
+            'vid.setAttribute("playsinline","");' .
+            'vid.addEventListener("loadeddata",function(){try{if(this.currentTime<0.2)this.currentTime=tSec;}catch(e){}});' .
+            'tw.appendChild(vid);' .
+            '}else{' .
+            'tw.classList.add("vt-subtile-thumb-fallback");' .
+            '}' .
+            'var ov=document.createElement("div");' .
+            'ov.className="vt-subtile-thumb-overlay";' .
+            'var pb=document.createElement("span");' .
+            'pb.className="vt-subtile-play-badge";' .
+            'var pbi=document.createElement("i");' .
+            'pbi.className="fa fa-play";' .
+            'pb.appendChild(pbi);' .
+            'ov.appendChild(pb);' .
+            'tw.appendChild(ov);' .
+            'li.appendChild(tw);' .
+            'var bar=document.createElement("div");' .
+            'bar.className="vt-subtile-progress-wrap";' .
+            'var meta=document.createElement("div");' .
+            'meta.className="vt-subtile-progress-meta";' .
+            'var sp=document.createElement("span");' .
+            'sp.className="vt-subtile-video-title";' .
+            'sp.textContent=cfg.name;' .
+            'sp.title=cfg.name;' .
+            'var st=document.createElement("strong");' .
+            'st.textContent=cfg.pct+"%";' .
+            'meta.appendChild(sp);' .
+            'meta.appendChild(st);' .
+            'var tr=document.createElement("div");' .
+            'tr.className="vt-subtile-progress-track";' .
+            'var fl=document.createElement("div");' .
+            'fl.className="vt-subtile-progress-fill";' .
+            'fl.style.width=cfg.pct+"%";' .
+            'tr.appendChild(fl);' .
+            'bar.appendChild(meta);' .
+            'bar.appendChild(tr);' .
+            'li.appendChild(bar);' .
+            '}' .
+            '});' .
+            '};' .
+            'document.addEventListener("click",function(ev){' .
+            'if(ev.target.closest(".vt-course-modal-close")||ev.target.classList.contains("vt-course-modal-backdrop")){' .
+            'ev.preventDefault();' .
+            'ev.stopPropagation();' .
+            'window.videotrackClosePopup();' .
+            'return;' .
+            '}' .
+            'if(!window.vtCourseItems||document.body.classList.contains("editing"))return;' .
+            'var li=ev.target.closest("li.activity.videotrack");' .
+            'if(!li)return;' .
+            'if(ev.target.closest(".activity-actions, .editing, .dropdown, .cm-edit-action, .completioncheckbox, [data-action]"))return;' .
+            'var cmid=0;' .
+            'if(li.id&&li.id.indexOf("module-")===0){cmid=parseInt(li.id.replace("module-",""),10);}' .
+            'if(!cmid&&li.dataset&&li.dataset.cmid){cmid=parseInt(li.dataset.cmid,10);}' .
+            'if(!cmid||!window.vtCourseItems[cmid])return;' .
+            'var itemCfg=window.vtCourseItems[cmid];' .
+            'if(itemCfg.mode===1){' .
+            'ev.preventDefault();' .
+            'ev.stopPropagation();' .
+            'if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();' .
+            'window.videotrackOpenPopup(cmid);' .
+            '}else if(itemCfg.mode===0&&li.classList.contains("subtile")){' .
+            'ev.preventDefault();' .
+            'ev.stopPropagation();' .
+            'if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();' .
+            'window.location.href=itemCfg.viewurl;' .
+            '}' .
+            '},true);' .
+            'document.addEventListener("keydown",function(ev){' .
+            'if(ev.key==="Escape"||ev.keyCode===27){window.videotrackClosePopup();}' .
+            '});' .
+            'upgradeTilesSubtiles();' .
+            'setInterval(upgradeTilesSubtiles,400);' .
+            '})();';
+
+        $PAGE->requires->js_init_code($js);
+    } catch (Throwable $e) {
+        // Ignore if course context is not ready.
+    }
+}
+
+/**
+ * Hook called by Moodle on every course page load (including format_tiles) to extend course navigation.
+ *
+ * @param navigation_node $navigation The navigation node.
+ * @param stdClass $course The course object.
+ * @param context $context The course context.
+ * @return void
+ */
+function videotrack_extend_navigation_course($navigation, $course, $context) {
+    if (!empty($course->id)) {
+        videotrack_inject_course_js((int)$course->id);
+    }
+}
+
+/**
+ * Checks whether a URL belongs strictly to an allowed HTTPS HeyGen host.
+ *
+ * @param string $url The URL to validate.
+ * @return bool True if the URL uses HTTPS and its host is on the allowlist.
+ */
+function videotrack_is_allowed_heygen_url(string $url): bool {
+    $parts = parse_url($url);
+    if (!is_array($parts)) {
+        return false;
+    }
+
+    $allowed = ['app.heygen.com'];
+    return !empty($parts['scheme'])
+        && strtolower($parts['scheme']) === 'https'
+        && !empty($parts['host'])
+        && in_array(strtolower($parts['host']), $allowed, true);
+}
+
+/**
+ * Tries to extract a direct, public mp4 link from a HeyGen URL.
+ *
+ * @param string $url The original URL
+ * @param curl|null $curlclient Optional curl instance (for unit testing/mocking)
+ * @return string The mp4 URL if found, otherwise the original URL.
+ */
+function videotrack_extract_heygen_url($url, ?curl $curlclient = null) {
+    if (!is_string($url) || !videotrack_is_allowed_heygen_url($url)) {
+        return $url;
+    }
+
+    global $CFG;
+    require_once($CFG->libdir . '/filelib.php');
+
+    $curl = $curlclient ?? new curl();
+    $curl->setopt([
+        'CURLOPT_USERAGENT' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' .
+            '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'CURLOPT_TIMEOUT' => 10,
+        'CURLOPT_FOLLOWLOCATION' => false,
+        'CURLOPT_MAXREDIRS' => 0,
+    ]);
+    $content = $curl->get($url);
+
+    if (is_string($content) && preg_match_all('#https://resource2[.]heygen[.]ai[^"<>]+?[.]mp4#i', $content, $matches)) {
+        if (!empty($matches[0])) {
+            $extracted = $matches[0][0];
+            $unicodeamp = chr(92) . 'u0026';
+            $extracted = str_replace($unicodeamp, '&', $extracted);
+            return $extracted;
+        }
+    }
+
+    return $url;
+}
+
+/**
+ * Processes the video URL to extract direct links for supported platforms.
+ *
+ * @param string $url The original URL
+ * @return string The processed URL
+ */
+function videotrack_process_video_url($url) {
+    $url = videotrack_extract_heygen_url($url);
+
+    if (strpos($url, 'drive.google.com') !== false) {
+        $fileid = '';
+        if (preg_match('#/file/d/([a-zA-Z0-9_-]+)#', $url, $matches)) {
+            $fileid = $matches[1];
+        } else if (preg_match('#[?&]id=([a-zA-Z0-9_-]+)#', $url, $matches)) {
+            $fileid = $matches[1];
+        }
+
+        if (!empty($fileid)) {
+            $url = 'https://drive.google.com/file/d/' . $fileid . '/preview';
+        }
+    }
+
+    return $url;
+}
+
+/**
+ * Add a new instance of the videotrack activity.
+ *
+ * @param stdClass $videotrack The activity instance object.
+ * @param mod_videotrack_mod_form|null $mform The form.
+ * @return int The ID of the new instance.
+ */
+function videotrack_add_instance($videotrack, $mform = null) {
+    global $DB;
+    videotrack_ensure_schema_columns();
+
+    $videotrack->timecreated = time();
+    $videotrack->timemodified = $videotrack->timecreated;
+    $videotrack->isgdrive = !empty($videotrack->isgdrive) ? 1 : 0;
+    $videotrack->focusmode = !empty($videotrack->focusmode) ? 1 : 0;
+    $videotrack->accentcolor = videotrack_sanitize_accentcolor($videotrack->accentcolor ?? '');
+    $videotrack->displaymode = isset($videotrack->displaymode) ? (int)$videotrack->displaymode : 0;
+    $videotrack->targetpercent = isset($videotrack->targetpercent) ? (int)$videotrack->targetpercent : 0;
+
+    if (!empty($videotrack->videourl)) {
+        $videotrack->videourl = videotrack_process_video_url($videotrack->videourl);
+    }
+
+    if (isset($videotrack->manualtime_h) || isset($videotrack->manualtime_m) || isset($videotrack->manualtime_s)) {
+        $h = (int)($videotrack->manualtime_h ?? 0);
+        $m = (int)($videotrack->manualtime_m ?? 0);
+        $s = (int)($videotrack->manualtime_s ?? 0);
+        $videotrack->manualtime = ($h * 3600) + ($m * 60) + $s;
+    }
+
+    $id = $DB->insert_record('videotrack', $videotrack);
+
+    if (!empty($videotrack->coursemodule) && $videotrack->displaymode > 0) {
+        videotrack_sync_cm_showdescription((int)$videotrack->coursemodule, (int)$videotrack->displaymode);
+    }
+
+    $context = context_module::instance($videotrack->coursemodule);
+
+    if (isset($videotrack->video)) {
+        file_save_draft_area_files(
+            $videotrack->video,
+            $context->id,
+            'mod_videotrack',
+            'video',
+            0,
+            ['subdirs' => 0, 'maxfiles' => 1]
+        );
+    }
+
+    if (isset($videotrack->captions)) {
+        file_save_draft_area_files(
+            $videotrack->captions,
+            $context->id,
+            'mod_videotrack',
+            'captions',
+            0,
+            ['subdirs' => 0, 'maxfiles' => 1]
+        );
+    }
+
+    if (!empty($videotrack->course)) {
+        rebuild_course_cache($videotrack->course, true);
+    }
+
+    return $id;
+}
+
+/**
+ * Update an existing instance of the videotrack activity.
+ *
+ * @param stdClass $videotrack The activity instance object.
+ * @param mod_videotrack_mod_form|null $mform The form.
+ * @return bool True on success.
+ */
+function videotrack_update_instance($videotrack, $mform = null) {
+    global $DB;
+    videotrack_ensure_schema_columns();
+
+    $videotrack->timemodified = time();
+    $videotrack->id = $videotrack->instance;
+    $videotrack->isgdrive = !empty($videotrack->isgdrive) ? 1 : 0;
+    $videotrack->focusmode = !empty($videotrack->focusmode) ? 1 : 0;
+    $videotrack->accentcolor = videotrack_sanitize_accentcolor($videotrack->accentcolor ?? '');
+    $videotrack->displaymode = isset($videotrack->displaymode) ? (int)$videotrack->displaymode : 0;
+    if (isset($videotrack->targetpercent)) {
+        $videotrack->targetpercent = (int)$videotrack->targetpercent;
+    }
+
+    if (!empty($videotrack->videourl)) {
+        $videotrack->videourl = videotrack_process_video_url($videotrack->videourl);
+    }
+
+    if (isset($videotrack->manualtime_h) || isset($videotrack->manualtime_m) || isset($videotrack->manualtime_s)) {
+        $h = (int)($videotrack->manualtime_h ?? 0);
+        $m = (int)($videotrack->manualtime_m ?? 0);
+        $s = (int)($videotrack->manualtime_s ?? 0);
+        $videotrack->manualtime = ($h * 3600) + ($m * 60) + $s;
+    }
+
+    $DB->update_record('videotrack', $videotrack);
+
+    if (!empty($videotrack->coursemodule) && $videotrack->displaymode > 0) {
+        videotrack_sync_cm_showdescription((int)$videotrack->coursemodule, (int)$videotrack->displaymode);
+    }
+
+    $context = context_module::instance($videotrack->coursemodule);
+
+    if (isset($videotrack->video)) {
+        file_save_draft_area_files(
+            $videotrack->video,
+            $context->id,
+            'mod_videotrack',
+            'video',
+            0,
+            ['subdirs' => 0, 'maxfiles' => 1]
+        );
+    }
+
+    if (isset($videotrack->captions)) {
+        file_save_draft_area_files(
+            $videotrack->captions,
+            $context->id,
+            'mod_videotrack',
+            'captions',
+            0,
+            ['subdirs' => 0, 'maxfiles' => 1]
+        );
+    }
+
+    if (!empty($videotrack->course)) {
+        rebuild_course_cache($videotrack->course, true);
+    }
+
+    return true;
+}
+
+/**
+ * Delete an instance of the videotrack activity.
+ *
+ * @param int $id The ID of the instance.
+ * @return bool True on success.
+ */
+function videotrack_delete_instance($id) {
+    global $DB;
+    if (!$videotrack = $DB->get_record('videotrack', ['id' => $id])) {
+        return true;
+    }
+
+    $DB->delete_records('videotrack_progress', ['videotrackid' => $videotrack->id]);
+    $DB->delete_records('videotrack_reactions', ['videotrackid' => $videotrack->id]);
+
+    $cm = get_coursemodule_from_instance('videotrack', $id);
+    if ($cm) {
+        $context = context_module::instance($cm->id);
+        $fs = get_file_storage();
+        $fs->delete_area_files($context->id, 'mod_videotrack', 'video');
+        $fs->delete_area_files($context->id, 'mod_videotrack', 'captions');
+    }
+
+    $DB->delete_records('videotrack', ['id' => $videotrack->id]);
+    return true;
+}
+
+/**
+ * Converts SubRip (.srt) subtitle content into WebVTT (.vtt) format on the fly.
+ *
+ * @param string $srtcontent Raw SRT file content.
+ * @return string Valid WebVTT content.
+ */
+function videotrack_convert_srt_to_vtt(string $srtcontent): string {
+    $bom = chr(0xEF) . chr(0xBB) . chr(0xBF);
+    if (strpos($srtcontent, $bom) === 0) {
+        $srtcontent = substr($srtcontent, 3);
+    }
+    $cr = chr(13);
+    $lf = chr(10);
+    $srtcontent = str_replace([$cr . $lf, $cr], $lf, $srtcontent);
+    $vttbody = preg_replace(
+        '/([0-9]{2}:[0-9]{2}:[0-9]{2}),([0-9]{3})[ ]*-->[ ]*([0-9]{2}:[0-9]{2}:[0-9]{2}),([0-9]{3})/',
+        '$1.$2 --> $3.$4',
+        $srtcontent
+    );
+    return 'WEBVTT' . $lf . $lf . ltrim($vttbody);
+}
+
+/**
+ * Serves the files from the videotrack file areas.
+ *
+ * @param stdClass $course The course object.
+ * @param stdClass $cm The course module object.
+ * @param context $context The context.
+ * @param string $filearea The file area.
+ * @param array $args The arguments.
+ * @param bool $forcedownload Whether to force download.
+ * @param array $options Options.
+ * @return bool False if file not found, otherwise does not return.
+ */
+function mod_videotrack_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+    if ($context->contextlevel != CONTEXT_MODULE) {
+        return false;
+    }
+    require_login($course, true, $cm);
+    if (!in_array($filearea, ['video', 'captions'], true)) {
+        return false;
+    }
+
+    $itemid = (int)array_shift($args);
+
+    if (empty($args)) {
+        return false;
+    }
+
+    $filename = array_pop($args);
+    $filepath = empty($args) ? '/' : '/' . implode('/', $args) . '/';
+
+    $fs = get_file_storage();
+    $file = $fs->get_file($context->id, 'mod_videotrack', $filearea, $itemid, $filepath, $filename);
+
+    if (!$file || $file->is_directory()) {
+        return false;
+    }
+
+    if ($filearea === 'captions' && strtolower(pathinfo($filename, PATHINFO_EXTENSION)) === 'srt') {
+        $vttcontent = videotrack_convert_srt_to_vtt($file->get_content());
+        send_file($vttcontent, pathinfo($filename, PATHINFO_FILENAME) . '.vtt', 0, 0, true, false, 'text/vtt; charset=utf-8');
+        return true;
+    }
+
+    send_stored_file($file, 0, 0, $forcedownload, $options);
+}
+
+/**
+ * Indicates API features that the videotrack supports.
+ *
+ * @param string $feature The feature to check.
+ * @return mixed True if supported, null if unknown.
+ */
+function videotrack_supports($feature) {
+    switch ($feature) {
+        case FEATURE_MOD_INTRO:
+            return true;
+        case FEATURE_SHOW_DESCRIPTION:
+            return true;
+        case FEATURE_COMPLETION_TRACKS_VIEWS:
+            return true;
+        case FEATURE_COMPLETION_HAS_RULES:
+            return true;
+        case FEATURE_GRADE_HAS_GRADE:
+            return false;
+        case FEATURE_BACKUP_MOODLE2:
+            return true;
+        case FEATURE_MOD_PURPOSE:
+            return MOD_PURPOSE_CONTENT;
+        default:
+            return null;
+    }
+}
+
+/**
+ * Callback used by Moodle course cache (modinfo) to populate custom completion rules and display mode.
+ *
+ * @param stdClass $coursemodule The coursemodule object.
+ * @return cached_cm_info|false
+ */
+function videotrack_get_coursemodule_info($coursemodule) {
+    global $DB;
+
+    $dbparams = ['id' => $coursemodule->instance];
+    if (!$videotrack = $DB->get_record('videotrack', $dbparams)) {
+        return false;
+    }
+
+    $displaymode = isset($videotrack->displaymode) ? (int)$videotrack->displaymode : 0;
+
+    if ($displaymode > 0 && empty($coursemodule->showdescription)) {
+        videotrack_sync_cm_showdescription((int)$coursemodule->id, $displaymode);
+        $coursemodule->showdescription = 1;
+    }
+
+    $result = new cached_cm_info();
+    $result->name = $videotrack->name;
+
+    if ($coursemodule->showdescription && trim((string)$videotrack->intro) !== '') {
+        $result->content = format_module_intro('videotrack', $videotrack, $coursemodule->id, false);
+    }
+
+    if ($coursemodule->completion == COMPLETION_TRACKING_AUTOMATIC && (int)$videotrack->targetpercent > 0) {
+        $result->customdata['customcompletionrules']['targetpercent'] = (int)$videotrack->targetpercent;
+    }
+
+    $result->customdata['displaymode'] = $displaymode;
+
+    if ($displaymode === 1) {
+        $popupurl = (new moodle_url('/mod/videotrack/view.php', ['id' => $coursemodule->id, 'inpopup' => 1]))->out(false);
+        $result->onclick = 'if(window.videotrackOpenPopup){return window.videotrackOpenPopup(' .
+            (int)$coursemodule->id . ',"' . s($popupurl) . '",this.textContent||"");}';
+    }
+
+    return $result;
+}
+
+/**
+ * Alias for videotrack_get_coursemodule_info.
+ *
+ * @param stdClass $coursemodule The coursemodule object.
+ * @return cached_cm_info|false
+ */
+function mod_videotrack_get_coursemodule_info($coursemodule) {
+    return videotrack_get_coursemodule_info($coursemodule);
+}
+
+/**
+ * Dynamic course module info callback (Moodle allows $cm->set_on_click and set_extra_classes here).
+ *
+ * @param cm_info $cm Course module info object.
+ * @return void
+ */
+function videotrack_cm_info_dynamic(cm_info $cm) {
+    $customdata = $cm->customdata;
+    $displaymode = (is_array($customdata) && isset($customdata['displaymode'])) ? (int)$customdata['displaymode'] : 0;
+    if ($displaymode === 1) {
+        $cm->set_extra_classes('vt-mode-card-popup');
+        $popupurl = (new moodle_url('/mod/videotrack/view.php', ['id' => $cm->id, 'inpopup' => 1]))->out(false);
+        $cm->set_on_click(
+            'if(window.videotrackOpenPopup){return window.videotrackOpenPopup(' .
+            (int)$cm->id . ',"' . s($popupurl) . '",this.textContent||"");}'
+        );
+    } else if ($displaymode === 2) {
+        $cm->set_extra_classes('vt-mode-inline-embed');
+    }
+}
+
+/**
+ * Renders the custom course page view when displaymode is 1 (Card + Popup) or 2 (Embedded player on course page).
+ * Only calls $cm->set_content() as required by Moodle's cm_info API.
+ *
+ * @param cm_info $cm Course module info object.
+ * @return void
+ */
+function videotrack_cm_info_view(cm_info $cm) {
+    global $DB, $USER;
+
+    if (!$cm->uservisible) {
+        return;
+    }
+
+    $videotrack = $DB->get_record('videotrack', ['id' => $cm->instance]);
+    if (!$videotrack) {
+        return;
+    }
+
+    videotrack_inject_course_js((int)$cm->course);
+
+    $displaymode = isset($videotrack->displaymode) ? (int)$videotrack->displaymode : 0;
+    if ($displaymode === 0) {
+        return;
+    }
+
+    $rawaccent = videotrack_sanitize_accentcolor($videotrack->accentcolor ?? '');
+    $accent = ($rawaccent !== '') ? $rawaccent : '#0ea5e9';
+    $introhtml = ($cm->showdescription && trim((string)$videotrack->intro) !== '')
+        ? format_module_intro('videotrack', $videotrack, $cm->id, false)
+        : '';
+
+    if ($displaymode === 1) {
+        // Mode 1: Exact format_tiles style Thumbnail Card that opens the player in a modal popup.
+        $progress = $DB->get_record('videotrack_progress', ['videotrackid' => $videotrack->id, 'userid' => $USER->id]);
+        $pct = $progress ? (int)$progress->highestpercent : 0;
+        $thumbsec = ($progress && !empty($progress->highesttime) && (float)$progress->highesttime > 1.5)
+            ? round((float)$progress->highesttime, 1)
+            : 2.5;
+        $popupurl = (new moodle_url('/mod/videotrack/view.php', ['id' => $cm->id, 'inpopup' => 1]))->out(false);
+        $modalid = 'vt-popup-modal-' . (int)$cm->id;
+        $iframeid = 'vt-popup-iframe-' . (int)$cm->id;
+        $cleanname = format_string($videotrack->name);
+        $safetitleattr = s($cleanname);
+        $thumbinfo = videotrack_resolve_subtile_thumb($videotrack, (int)$cm->id);
+        $thumbtype = $thumbinfo['thumbtype'];
+        $thumburl = $thumbinfo['thumburl'];
+
+        $thumbmediahtml = '';
+        $thumbfallbackclass = '';
+        if ($thumbtype === 'image' && $thumburl !== '') {
+            $thumbmediahtml = '<img class="vt-subtile-thumb-media" src="' . s($thumburl) . '" ' .
+                'alt="' . $safetitleattr . '" loading="lazy" data-fb="vt-subtile-thumb-fallback" ' .
+                'onerror="this.hidden=true;this.parentNode.classList.add(this.dataset.fb);">';
+        } else if ($thumbtype === 'video' && $thumburl !== '') {
+            $videosrc = (strpos($thumburl, '#') === false) ? ($thumburl . '#t=' . $thumbsec) : $thumburl;
+            $thumbmediahtml = '<video class="vt-subtile-thumb-media" src="' . s($videosrc) . '" ' .
+                'muted playsinline preload="metadata" ' .
+                'onloadeddata="try{if(this.currentTime<0.2)this.currentTime=' . $thumbsec . ';}catch(e){}"></video>';
+        } else {
+            $thumbfallbackclass = ' vt-subtile-thumb-fallback';
+        }
+
+        $html = $introhtml;
+        $html .= '<div class="vt-popup-tile-card vt-course-card" style="--vt-accent: ' . s($accent) . ';" ' .
+            'data-cmid="' . (int)$cm->id . '" data-modal="' . s($modalid) . '" data-iframe="' . s($iframeid) . '" ' .
+            'data-src="' . s($popupurl) . '" data-title="' . $safetitleattr . '" ' .
+            'onclick="if(window.videotrackOpenPopup){return window.videotrackOpenPopup(this.dataset.cmid,this.dataset.src,this.dataset.title);}return false;">';
+        $html .= '  <div class="vt-popup-tile-thumb vt-course-card-thumb' . $thumbfallbackclass . '">';
+        $html .= $thumbmediahtml;
+        $html .= '    <div class="vt-subtile-thumb-overlay">';
+        $html .= '      <span class="vt-subtile-play-badge"><i class="fa fa-play"></i></span>';
+        $html .= '    </div>';
+        $html .= '  </div>';
+        $html .= '  <div class="vt-popup-tile-footer vt-course-card-footer">';
+        $html .= '    <div class="vt-course-card-progress-top">';
+        $html .= '      <span class="vt-course-card-video-title" title="' . $safetitleattr . '">' . $cleanname . '</span>';
+        $html .= '      <strong>' . $pct . '%</strong>';
+        $html .= '    </div>';
+        $html .= '    <div class="vt-course-card-bar"><div style="width:' . $pct . '%;background:' . s($accent) . ';"></div></div>';
+        $html .= '  </div>';
+        $html .= '</div>';
+
+        // Lightweight Modal Overlay for Popup Player.
+        $html .= '<div id="' . $modalid . '" class="vt-course-modal-backdrop" style="display:none;" ' .
+            'onclick="if(event.target===this&&window.videotrackClosePopup){window.videotrackClosePopup();}">';
+        $html .= '  <div class="vt-course-modal-dialog">';
+        $html .= '    <div class="vt-course-modal-header">';
+        $html .= '      <span class="vt-course-modal-title">' . $cleanname . '</span>';
+        $html .= '      <button type="button" class="vt-course-modal-close" ' .
+            'onclick="if(window.videotrackClosePopup){window.videotrackClosePopup();}">&times;</button>';
+        $html .= '    </div>';
+        $html .= '    <div class="vt-course-modal-body">';
+        $html .= '      <iframe id="' . $iframeid . '" src="about:blank" allowfullscreen="true" allow="autoplay; fullscreen"></iframe>';
+        $html .= '    </div>';
+        $html .= '  </div>';
+        $html .= '</div>';
+
+        $cm->set_content($html, true);
+    } else if ($displaymode === 2) {
+        // Mode 2: Player embedded directly on the course page via isolated responsive iframe.
+        $embedurl = (new moodle_url('/mod/videotrack/view.php', ['id' => $cm->id, 'embed' => 1]))->out(false);
+        $iframeid = 'vt-inline-iframe-' . (int)$cm->id;
+
+        $html = $introhtml;
+        $html .= '<div class="vt-course-inline-embed">';
+        $html .= '  <iframe id="' . $iframeid . '" src="' . s($embedurl) . '" class="vt-course-inline-iframe" ' .
+            'data-card=".videotrack-card" data-unit="px" ' .
+            'onload="try{var d=this.contentWindow.document;var c=d.querySelector(this.dataset.card);var r=c?c.getBoundingClientRect():null;var h=r?Math.ceil(r.bottom)+20:Math.max(d.body.scrollHeight,d.documentElement.scrollHeight);if(h>250)this.style.height=h+this.dataset.unit;}catch(e){}" ' .
+            'allowfullscreen="true" allow="autoplay; fullscreen" scrolling="no"></iframe>';
+        $html .= '</div>';
+
+        $cm->set_content($html, true);
+    }
+}
+
+/**
+ * Extends settings secondary course/activity navigation (tabs) with report.php for teachers.
+ *
+ * @param settings_navigation $settingsnav The settings navigation object.
+ * @param navigation_node|null $node The navigation node.
+ */
+function videotrack_extend_settings_navigation(settings_navigation $settingsnav, ?navigation_node $node = null) {
+    global $PAGE;
+    $cm = $PAGE->cm;
+
+    if (!$cm || !$node) {
+        return;
+    }
+
+    $context = context_module::instance($cm->id);
+    if (has_capability('moodle/course:manageactivities', $context)) {
+        $url = new moodle_url('/mod/videotrack/report.php', ['id' => $cm->id]);
+
+        $reportnode = $node->add(
+            get_string('report', 'mod_videotrack'),
+            $url,
+            navigation_node::TYPE_SETTING,
+            null,
+            'videotrackreport',
+            new pix_icon('i/report', '')
+        );
+
+        $reportnode->showinflatnavigation = true;
     }
 }

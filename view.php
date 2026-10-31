@@ -48,17 +48,18 @@ $PAGE->set_url('/mod/videotrack/view.php', [
 $PAGE->set_title(format_string($videotrack->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
+$PAGE->requires->css(new moodle_url('/mod/videotrack/styles.css'));
 
 if ($isembed) {
     $PAGE->set_pagelayout('embedded');
-    $PAGE->requires->css(new moodle_url('/mod/videotrack/styles.css'));
     if (isset($PAGE->activityheader)) {
         $PAGE->activityheader->disable();
     }
 }
 
 // Trigger Moodle course_module_viewed event for reports and external plugins (e.g. Level Up XP).
-$event = \mod_videotrack\event\course_module_viewed::create([
+$eventclass = 'mod_videotrack' . chr(92) . 'event' . chr(92) . 'course_module_viewed';
+$event = $eventclass::create([
     'objectid' => $videotrack->id,
     'context' => $context,
     'courseid' => $course->id,
@@ -156,7 +157,20 @@ foreach ($captionfiles as $cf) {
     }
 }
 
+$now = time();
 $progress = $DB->get_record('videotrack_progress', ['videotrackid' => $videotrack->id, 'userid' => $USER->id]);
+if (!$progress && !$isgdrive) {
+    $progress = new stdClass();
+    $progress->videotrackid = $videotrack->id;
+    $progress->userid = $USER->id;
+    $progress->highestpercent = 0;
+    $progress->highesttime = 0;
+    $progress->iscompleted = 0;
+    $progress->timecreated = $now;
+    $progress->timemodified = $now;
+    $progress->id = $DB->insert_record('videotrack_progress', $progress);
+}
+
 $currentpercent = $progress ? (int)$progress->highestpercent : 0;
 $highesttime = ($progress && isset($progress->highesttime)) ? (int)$progress->highesttime : 0;
 $iscompleted = $progress ? (bool)$progress->iscompleted : false;
@@ -177,13 +191,13 @@ if ($isgdrive && !$ismanualtrack && !$iscompleted) {
         $progress->highesttime = 0;
         $progress->highestpercent = 100;
         $progress->iscompleted = 1;
-        $progress->timecreated = time();
-        $progress->timemodified = time();
+        $progress->timecreated = $now;
+        $progress->timemodified = $now;
         $DB->insert_record('videotrack_progress', $progress);
     } else {
         $progress->highestpercent = 100;
         $progress->iscompleted = 1;
-        $progress->timemodified = time();
+        $progress->timemodified = $now;
         $DB->update_record('videotrack_progress', $progress);
     }
 
@@ -210,6 +224,11 @@ $formattedtime = ($highesttime >= 3600)
     ? sprintf("%02d:%02d:%02d", intdiv($highesttime, 3600), intdiv($highesttime % 3600, 60), $highesttime % 60)
     : sprintf("%02d:%02d", intdiv($highesttime, 60), $highesttime % 60);
 
+// Teacher capability check: only teachers/admins with editing rights can see Settings and Report shortcuts.
+$canmanage = has_capability('moodle/course:manageactivities', $context);
+$settingsurl = $canmanage ? (new moodle_url('/course/modedit.php', ['update' => $cm->id, 'return' => 1]))->out(false) : '';
+$reporturl = $canmanage ? (new moodle_url('/mod/videotrack/report.php', ['id' => $cm->id]))->out(false) : '';
+
 // Hide the "Back to course" button when rendered embedded or inside the course modal popup.
 $courseurl = $isembed ? '' : (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false);
 
@@ -219,6 +238,11 @@ $templatecontext = [
     'isembed' => (bool)$isembed,
     'inpopup' => (bool)$inpopup,
     'courseurl' => $courseurl,
+    'canmanage' => $canmanage,
+    'settingsurl' => $settingsurl,
+    'reporturl' => $reporturl,
+    'settingslabel' => get_string('settings'),
+    'reportlabel' => get_string('report', 'mod_videotrack'),
     'backtocoursetext' => get_string('backtocourse', 'mod_videotrack'),
     'videourl' => $videourl,
     'captionsurl' => $captionsurl,
@@ -234,6 +258,7 @@ $templatecontext = [
     'ytid' => $ytid,
     'targetpercent' => $videotrack->targetpercent,
     'currentpercent' => $currentpercent,
+    'highesttime' => $highesttime,
     'iscompleted' => $iscompleted,
     'isfree' => $isfree,
     'showresumebutton' => ($currentpercent > 0 && $currentpercent < 100),

@@ -22,7 +22,6 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
 require(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
 require_once($CFG->libdir . '/enrollib.php');
@@ -45,28 +44,240 @@ $PAGE->set_title(get_string('report', 'mod_videotrack'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('incourse');
+$PAGE->requires->css(new moodle_url('/mod/videotrack/styles.css'));
 
 // Keep the report tab active.
 $PAGE->navbar->add(get_string('report', 'mod_videotrack'));
 
-echo $OUTPUT->header();
-echo $OUTPUT->heading(format_string($videotrack->name) . ' - ' . get_string('report', 'mod_videotrack'));
+$rawaccent = videotrack_sanitize_accentcolor($videotrack->accentcolor ?? '');
+$accentcolor = ($rawaccent !== '') ? $rawaccent : '#0ea5e9';
+$courseurl = (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false);
+$backlabel = get_string('backtocourse', 'mod_videotrack');
 
-// 4. Find enrolled students in the course with permission to view the activity.
-// Fetch all user fields (u.*) to prevent issues with custom themes or missing fields for fullname/user_picture.
+echo $OUTPUT->header();
+
+// Modern report styles scoped to the report container.
+echo '<style>
+.vt-report-card {
+    --vt-accent: ' . s($accentcolor) . ';
+    max-width: 1024px;
+    margin: 20px auto 32px auto;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.06), 0 4px 14px -2px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+}
+.vt-report-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+}
+.vt-report-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.vt-report-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--vt-accent, #0ea5e9);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
+    flex-shrink: 0;
+}
+.vt-report-heading {
+    margin: 0;
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+.vt-report-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background-color: var(--vt-accent, #0ea5e9);
+    color: #ffffff !important;
+    border: 0;
+    border-radius: 10px;
+    text-decoration: none !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14);
+    flex-shrink: 0;
+}
+.vt-report-back-btn svg {
+    display: block;
+    transition: transform 0.2s ease;
+}
+.vt-report-back-btn:hover {
+    background-color: var(--vt-accent, #0ea5e9);
+    color: #ffffff !important;
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+}
+.vt-report-back-btn:hover svg {
+    transform: translateX(-2px);
+}
+.vt-report-table-wrap {
+    padding: 0;
+    overflow-x: auto;
+}
+.vt-report-card table.mod_videotrack_report {
+    margin: 0 !important;
+    border: 0 !important;
+    width: 100%;
+    border-collapse: collapse;
+}
+.vt-report-card table.mod_videotrack_report thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 14px 24px !important;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+.vt-report-card table.mod_videotrack_report tbody td {
+    padding: 16px 24px !important;
+    vertical-align: middle !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #334155;
+    font-size: 0.92rem;
+}
+.vt-report-card table.mod_videotrack_report tbody tr:last-child td {
+    border-bottom: 0 !important;
+}
+.vt-report-card table.mod_videotrack_report tbody tr:hover td {
+    background-color: #f8fafc !important;
+}
+.vt-report-student {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: #0f172a;
+}
+.vt-report-progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 220px;
+}
+.vt-report-track {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background-color: #f1f5f9;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+.vt-report-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--vt-accent, #0ea5e9);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.vt-report-pct-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: var(--vt-accent, #0ea5e9);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.vt-report-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+}
+.vt-report-status-done {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #059669;
+}
+.vt-report-status-pending {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+}
+.vt-report-date {
+    color: #64748b;
+    font-size: 0.88rem;
+}
+</style>';
+
+echo '<div class="vt-report-card">';
+echo '  <div class="vt-report-top">';
+echo '    <div class="vt-report-title-wrap">';
+echo '      <span class="vt-report-dot"></span>';
+echo '      <h3 class="vt-report-heading">' . format_string($videotrack->name) . ' — ' .
+    s(get_string('report', 'mod_videotrack')) . '</h3>';
+echo '    </div>';
+echo '    <a href="' . s($courseurl) . '" class="vt-report-back-btn" title="' . s($backlabel) . '" aria-label="' . s($backlabel) . '">';
+echo '      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" ' .
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+echo '        <line x1="19" y1="12" x2="5" y2="12"></line>';
+echo '        <polyline points="12 19 5 12 12 5"></polyline>';
+echo '      </svg>';
+echo '    </a>';
+echo '  </div>';
+
+// Fetch all progress records for this activity at once to prevent DB queries inside the loop.
+$allprogress = $DB->get_records(
+    'videotrack_progress',
+    ['videotrackid' => $videotrack->id],
+    '',
+    'userid, id, highestpercent, iscompleted, timemodified'
+);
+
+// 4. Find enrolled users in the course with permission to view the activity.
 $users = get_enrolled_users($context, 'mod/videotrack:view', 0, 'u.*');
 
-// Filter to exclude users with capacity to manage the activity (teachers, admins).
+// Filter to exclude teachers/admins unless they have actively recorded progress (> 0%) on this video.
 foreach ($users as $key => $user) {
     if (has_capability('moodle/course:manageactivities', $context, $user)) {
-        unset($users[$key]);
+        $hasactiveprogress = isset($allprogress[$user->id]) && (int)$allprogress[$user->id]->highestpercent > 0;
+        if (!$hasactiveprogress) {
+            unset($users[$key]);
+        }
     }
 }
 
+$targetpercent = (int)$videotrack->targetpercent;
+
 if (empty($users)) {
+    echo '<div style="padding: 24px;">';
     echo $OUTPUT->notification(get_string('noresponses', 'mod_videotrack'), 'info');
+    echo '</div>';
 } else {
-    // Create Moodle native table with Bootstrap styles.
     $table = new html_table();
     $table->head = [
         get_string('student', 'mod_videotrack'),
@@ -74,66 +285,65 @@ if (empty($users)) {
         get_string('completed', 'mod_videotrack'),
         get_string('lastaccess', 'mod_videotrack'),
     ];
-    $table->attributes['class'] = 'generaltable mod_videotrack_report table-hover';
-
-    // Fetch all progress records for this activity at once to prevent DB queries inside the loop.
-    $allprogress = $DB->get_records(
-        'videotrack_progress',
-        ['videotrackid' => $videotrack->id],
-        '',
-        'userid, id, highestpercent, iscompleted, timemodified'
-    );
+    $table->attributes['class'] = 'generaltable mod_videotrack_report';
 
     foreach ($users as $user) {
-        // Get the progress record for this user.
         $progress = $allprogress[$user->id] ?? null;
 
         $fullname = fullname($user);
-        // Fallback in case a custom plugin/theme incorrectly returns an object.
         if (is_object($fullname)) {
             $fullname = $user->firstname . ' ' . $user->lastname;
         }
 
-        $userpicture = $OUTPUT->user_picture($user, ['size' => 35]);
-        // Fallback in case a custom theme renderer incorrectly returns an object.
+        $userpicture = $OUTPUT->user_picture($user, ['size' => 36]);
         if (is_object($userpicture)) {
             $userpicture = '';
         }
 
         // Student cell with avatar and name.
-        $studentcell = html_writer::div($userpicture . ' ' . html_writer::span($fullname, 'ml-2'), 'd-flex align-items-center');
+        $studentcell = html_writer::div(
+            $userpicture . html_writer::span(s($fullname)),
+            'vt-report-student'
+        );
 
-        $percent = $progress ? (int)$progress->highestpercent : 0;
+        $percent = $progress ? max(0, min(100, (int)$progress->highestpercent)) : 0;
+        $isdone = false;
+        if ($progress) {
+            $isdone = !empty($progress->iscompleted)
+                || ($targetpercent > 0 && $percent >= $targetpercent)
+                || ($targetpercent <= 0 && $percent > 0);
+            if ($isdone && empty($progress->iscompleted)) {
+                $DB->set_field('videotrack_progress', 'iscompleted', 1, ['id' => $progress->id]);
+            }
+        }
 
-        // Render progress bar using native bootstrap classes.
-        $progressbar = '
-        <div class="d-flex align-items-center" style="min-width: 200px;">
-            <div class="progress w-100 mr-2" style="height: 16px; border-radius: 8px; background-color: #e9ecef;">
-                <div class="progress-bar progress-bar-striped bg-info" ' .
-                'role="progressbar" style="width: ' . $percent . '%;" ' .
-                'aria-valuenow="' . $percent . '" ' .
-                'aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            <span class="font-weight-bold">' . $percent . '%</span>
-        </div>';
+        // Modern smooth pill progress bar + percentage badge.
+        $progressbar = '<div class="vt-report-progress-cell">' .
+            '<div class="vt-report-track" role="progressbar" aria-valuenow="' . $percent . '" ' .
+            'aria-valuemin="0" aria-valuemax="100">' .
+            '<div class="vt-report-fill" style="width: ' . $percent . '%;"></div>' .
+            '</div>' .
+            '<span class="vt-report-pct-badge">' . $percent . '%</span>' .
+            '</div>';
 
-        // Completion status with official icons.
-        if ($progress && $progress->iscompleted) {
-            $completedcell = html_writer::span(
-                '<i class="fa fa-check-circle text-success mr-1"></i> ' . get_string('yes', 'moodle'),
-                'text-success font-weight-bold'
-            );
+        // Modern status pill badge.
+        if ($isdone) {
+            $completedcell = '<span class="vt-report-status-pill vt-report-status-done">' .
+                '<i class="fa fa-check-circle" aria-hidden="true"></i> ' .
+                s(get_string('yes', 'moodle')) .
+                '</span>';
         } else {
-            $completedcell = html_writer::span(
-                '<i class="fa fa-circle-o text-muted mr-1"></i> ' . get_string('no', 'moodle'),
-                'text-muted'
-            );
+            $completedcell = '<span class="vt-report-status-pill vt-report-status-pending">' .
+                '<i class="fa fa-clock-o" aria-hidden="true"></i> ' .
+                s(get_string('no', 'moodle')) .
+                '</span>';
         }
 
         // Formatted last access date.
-        $lastaccesscell = '-';
-        if ($progress && $progress->timemodified) {
-            $lastaccesscell = userdate($progress->timemodified, get_string('strftimedatetime', 'langconfig'));
+        $lastaccesscell = '<span class="vt-report-date">—</span>';
+        if ($progress && !empty($progress->timemodified) && $percent > 0) {
+            $formatteddate = userdate($progress->timemodified, get_string('strftimedatetime', 'langconfig'));
+            $lastaccesscell = '<span class="vt-report-date">' . s($formatteddate) . '</span>';
         }
 
         $table->data[] = [
@@ -144,7 +354,11 @@ if (empty($users)) {
         ];
     }
 
+    echo '<div class="vt-report-table-wrap">';
     echo html_writer::table($table);
+    echo '</div>';
 }
+
+echo '</div>';
 
 echo $OUTPUT->footer();
