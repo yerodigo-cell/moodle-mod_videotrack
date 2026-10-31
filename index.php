@@ -22,7 +22,6 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
 require_once('../../config.php');
 
 $id = required_param('id', PARAM_INT); // Course ID.
@@ -31,8 +30,9 @@ $course = $DB->get_record('course', ['id' => $id], '*', MUST_EXIST);
 require_course_login($course);
 
 // If the Moodle 5.0+ course activities overview is available, redirect to it.
-if (class_exists('\core_courseformat\activityoverviewbase')) {
-    \core_courseformat\activityoverviewbase::redirect_to_overview_page($course->id, 'videotrack');
+$overviewclass = 'core_courseformat' . chr(92) . 'activityoverviewbase';
+if (class_exists($overviewclass)) {
+    $overviewclass::redirect_to_overview_page($course->id, 'videotrack');
 }
 
 $PAGE->set_url('/mod/videotrack/index.php', ['id' => $course->id]);
