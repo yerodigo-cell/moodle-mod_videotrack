@@ -334,14 +334,34 @@ if (empty($users)) {
     foreach ($users as $user) {
         $progress = $allprogress[$user->id] ?? null;
 
-        $fullname = fullname($user);
-        if (is_object($fullname)) {
-            $fullname = $user->firstname . ' ' . $user->lastname;
+        $fullname = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
+        try {
+            $defaultname = fullname($user);
+            if (is_string($defaultname) && trim($defaultname) !== '') {
+                $fullname = $defaultname;
+            }
+        } catch (Throwable $e) {
+            // Keep safe firstname and lastname fallback if theme overrides fullname improperly.
+            $fullname = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
         }
 
-        $userpicture = $OUTPUT->user_picture($user, ['size' => 38, 'link' => false]);
-        if (is_object($userpicture)) {
-            $userpicture = '';
+        $initials = core_text::strtoupper(
+            core_text::substr(trim((string)($user->firstname ?? '')), 0, 1) .
+            core_text::substr(trim((string)($user->lastname ?? '')), 0, 1)
+        );
+        if ($initials === '') {
+            $initials = 'U';
+        }
+        $fallbackavatar = '<span class="userinitials size-38">' . s($initials) . '</span>';
+
+        $userpicture = $fallbackavatar;
+        try {
+            $pic = $OUTPUT->user_picture($user, ['size' => 38, 'link' => false]);
+            if (is_string($pic) && trim($pic) !== '') {
+                $userpicture = $pic;
+            }
+        } catch (Throwable $e) {
+            $userpicture = $fallbackavatar;
         }
 
         // Student cell with avatar and name.
