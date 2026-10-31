@@ -21,9 +21,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 /* global YT */
-define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notification) {
+define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notification) {
     return {
-        init: function (
+        init: function(
             cmid,
             targetPercent,
             isYouTube,
@@ -50,7 +50,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
             var isWindowFocused = true;
             var isFreeNavigation = (targetPercent <= 0);
 
-            window.videotrackAllowResumeTo = function (targetSeconds, fallbackPercent) {
+            window.videotrackAllowResumeTo = function(targetSeconds, fallbackPercent) {
                 var sec = Number(targetSeconds) || 0;
                 var pct = Number(fallbackPercent) || 0;
                 if (sec > maxAllowedTime) {
@@ -62,7 +62,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                 if (resumeTimer) {
                     clearTimeout(resumeTimer);
                 }
-                resumeTimer = setTimeout(function () {
+                resumeTimer = setTimeout(function() {
                     isResuming = false;
                 }, 4000);
             };
@@ -77,7 +77,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
              *
              * @return {Boolean} True if fullscreen or within the transition grace window.
              */
-            var isFullscreenOrTransitioning = function () {
+            var isFullscreenOrTransitioning = function() {
                 var now = Date.now();
                 if (window.vtFullscreenTransitionUntil && now < window.vtFullscreenTransitionUntil) {
                     return true;
@@ -98,36 +98,46 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                             return true;
                         }
                     }
-                } catch (e) { }
+                } catch (e) {
+                    // Ignore cross-origin frame access errors.
+                }
                 return false;
             };
 
-            var markFsTransition = function () {
+            var markFsTransition = function() {
                 window.vtFullscreenTransitionUntil = Date.now() + 1200;
                 try {
                     if (window.parent && window.parent !== window) {
                         window.parent.vtFullscreenTransitionUntil = Date.now() + 1200;
                     }
-                } catch (e) { }
+                } catch (e) {
+                    // Ignore cross-origin frame access errors.
+                }
             };
 
-            document.addEventListener('fullscreenchange', markFsTransition);
-            document.addEventListener('webkitfullscreenchange', markFsTransition);
-            document.addEventListener('MSFullscreenChange', markFsTransition);
-            try {
-                if (window.parent && window.parent !== window && window.parent.document) {
-                    window.parent.document.addEventListener('fullscreenchange', markFsTransition);
-                    window.parent.document.addEventListener('webkitfullscreenchange', markFsTransition);
-                    window.parent.document.addEventListener('MSFullscreenChange', markFsTransition);
+            var bindFullscreenListeners = function() {
+                document.addEventListener('fullscreenchange', markFsTransition);
+                document.addEventListener('webkitfullscreenchange', markFsTransition);
+                document.addEventListener('MSFullscreenChange', markFsTransition);
+                try {
+                    if (window.parent && window.parent !== window && window.parent.document) {
+                        window.parent.document.addEventListener('fullscreenchange', markFsTransition);
+                        window.parent.document.addEventListener('webkitfullscreenchange', markFsTransition);
+                        window.parent.document.addEventListener('MSFullscreenChange', markFsTransition);
+                    }
+                } catch (e) {
+                    // Ignore cross-origin frame access errors.
                 }
-            } catch (e) { }
+            };
+
+            bindFullscreenListeners();
 
             /**
              * Reclaims focus from cross-origin iframes (YouTube/Shorts) back to our window
              * so subsequent window.blur events always fire reliably every time the user switches windows.
              */
-            var reclaimWindowFocus = function () {
-                setTimeout(function () {
+            var reclaimWindowFocus = function() {
+                setTimeout(function() {
                     if (isFullscreenOrTransitioning()) {
                         return;
                     }
@@ -136,11 +146,13 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                             document.activeElement.blur();
                         }
                         window.focus();
-                    } catch (e) { }
+                    } catch (e) {
+                        // Ignore cross-origin frame access errors.
+                    }
                 }, 150);
             };
 
-            var setFocusBadgeState = function (isPausedByFocus) {
+            var setFocusBadgeState = function(isPausedByFocus) {
                 var $badge = $('#vt-focus-badge');
                 if (!$badge.length) {
                     return;
@@ -158,7 +170,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
             /**
              * Shows a clean Focus Mode pause overlay for Google Drive iframes (since GDrive has no JS pause API).
              */
-            var pauseGDriveByFocus = function () {
+            var pauseGDriveByFocus = function() {
                 if (!isGDriveIframe || !gdriveIframe) {
                     return;
                 }
@@ -204,7 +216,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)'
                     }).html('<i class="fa fa-play"></i> <span>' + pausedLabel + '</span>');
 
-                    $btn.on('click', function (e) {
+                    $btn.on('click', function(e) {
                         e.preventDefault();
                         gdriveIframe.setAttribute('src', gdriveOriginalSrc);
                         $overlay.fadeOut(200);
@@ -220,37 +232,42 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                 }
             };
 
-            if (focusMode) {
-                var triggerFocusPause = function () {
-                    if (isGDriveIframe) {
-                        pauseGDriveByFocus();
-                        return;
-                    }
-                    if (!isYouTube && !isManualTrack) {
-                        var v = document.getElementById('videotrack-player');
-                        if (v && !v.paused && !v.ended) {
-                            v.pause();
-                            setFocusBadgeState(true);
-                        }
-                    } else if (isYouTube && window.ytPlayer && typeof window.ytPlayer.getPlayerState === 'function') {
-                        var st = window.ytPlayer.getPlayerState();
-                        if (st === YT.PlayerState.PLAYING || st === YT.PlayerState.BUFFERING || st === 1 || st === 3) {
-                            window.ytPlayer.pauseVideo();
-                            setFocusBadgeState(true);
-                            reclaimWindowFocus();
-                        }
-                    } else if (isManualTrack) {
+            var triggerFocusPause = function() {
+                if (!focusMode) {
+                    return;
+                }
+                if (isGDriveIframe) {
+                    pauseGDriveByFocus();
+                    return;
+                }
+                if (!isYouTube && !isManualTrack) {
+                    var v = document.getElementById('videotrack-player');
+                    if (v && !v.paused && !v.ended) {
+                        v.pause();
                         setFocusBadgeState(true);
                     }
-                };
+                } else if (isYouTube && window.ytPlayer && typeof window.ytPlayer.getPlayerState === 'function') {
+                    var st = window.ytPlayer.getPlayerState();
+                    if (st === YT.PlayerState.PLAYING || st === YT.PlayerState.BUFFERING || st === 1 || st === 3) {
+                        window.ytPlayer.pauseVideo();
+                        setFocusBadgeState(true);
+                        reclaimWindowFocus();
+                    }
+                } else if (isManualTrack) {
+                    setFocusBadgeState(true);
+                }
+            };
 
-                var handleVisibilityChange = function () {
+            var initFocusListeners = function() {
+                var handleVisibilityChange = function() {
                     var topHidden = false;
                     try {
                         if (window.top && window.top.document && window.top.document.hidden) {
                             topHidden = true;
                         }
-                    } catch (e) { }
+                    } catch (e) {
+                        // Ignore cross-origin frame access errors.
+                    }
 
                     if (document.hidden || topHidden) {
                         isWindowFocused = false;
@@ -263,8 +280,8 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                     }
                 };
 
-                var handleWindowBlur = function () {
-                    setTimeout(function () {
+                var handleWindowBlur = function() {
+                    setTimeout(function() {
                         if (window.vtFullscreenTransitionUntil && Date.now() < window.vtFullscreenTransitionUntil) {
                             return;
                         }
@@ -287,7 +304,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                     }, 180);
                 };
 
-                var handleWindowFocus = function () {
+                var handleWindowFocus = function() {
                     isWindowFocused = true;
                     if (isManualTrack && !isGDriveIframe && !document.hidden) {
                         setFocusBadgeState(false);
@@ -306,13 +323,19 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                             window.parent.document.addEventListener('visibilitychange', handleVisibilityChange);
                         }
                     }
-                } catch (e) { }
+                } catch (e) {
+                    // Ignore cross-origin frame access errors.
+                }
+            };
+
+            if (focusMode) {
+                initFocusListeners();
             }
 
             var isSaving = false;
             var queuedSave = null;
 
-            var notifyParentProgress = function (pct) {
+            var notifyParentProgress = function(pct) {
                 try {
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage({
@@ -321,10 +344,12 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                             percent: pct
                         }, '*');
                     }
-                } catch (e) { }
+                } catch (e) {
+                    // Ignore cross-origin frame access errors.
+                }
             };
 
-            var getLatestPlaybackTime = function () {
+            var getLatestPlaybackTime = function() {
                 var currentTime = maxAllowedTime;
                 if (isManualTrack) {
                     currentTime = maxAllowedTime;
@@ -345,7 +370,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                 return Math.max(0, Math.floor(currentTime));
             };
 
-            var saveProgress = function (percent, forceSave) {
+            var saveProgress = function(percent, forceSave) {
                 var floorPercent = Math.min(100, Math.max(0, Math.floor(percent)));
                 if (floorPercent >= 98) {
                     floorPercent = 100;
@@ -380,7 +405,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         percent: reqPercent,
                         currenttime: reqTime
                     }
-                }])[0].done(function (res) {
+                }])[0].done(function(res) {
                     isSaving = false;
                     if (res && res.success) {
                         if (reqPercent > lastSavedPercent) {
@@ -395,21 +420,21 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         queuedSave = null;
                         saveProgress(next.percent, next.force);
                     }
-                }).fail(function (ex) {
+                }).fail(function(ex) {
                     isSaving = false;
                     notification.exception(ex);
                 });
             };
 
-            window.videotrackFlushProgress = function () {
+            window.videotrackFlushProgress = function() {
                 saveProgress(highestPercent, true);
             };
 
-            window.addEventListener('pagehide', function () {
+            window.addEventListener('pagehide', function() {
                 saveProgress(highestPercent, true);
             });
 
-            var updateUI = function (percent, durationSec, currentSec) {
+            var updateUI = function(percent, durationSec, currentSec) {
                 var clamped = Math.min(100, Math.max(0, percent));
                 if (clamped >= 98 || (durationSec && durationSec > 2 && currentSec && (durationSec - currentSec <= 1.2))) {
                     clamped = 100;
@@ -437,8 +462,8 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
 
             if (isManualTrack && manualTime > 0) {
                 maxAllowedTime = lastSavedTime;
-                setTimeout(function () {
-                    var manualTimer = setInterval(function () {
+                setTimeout(function() {
+                    var manualTimer = setInterval(function() {
                         if (document.hidden || (focusMode && !isWindowFocused)) {
                             return;
                         }
@@ -469,7 +494,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
             if (!isYouTube) {
                 var video = document.getElementById('videotrack-player');
                 if (video) {
-                    video.addEventListener('loadedmetadata', function () {
+                    video.addEventListener('loadedmetadata', function() {
                         if (video.duration > 0) {
                             var recordedMax = (highestPercent / 100) * video.duration;
                             if (recordedMax > maxAllowedTime) {
@@ -478,13 +503,13 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         }
                     });
 
-                    video.addEventListener('play', function () {
+                    video.addEventListener('play', function() {
                         if (focusMode) {
                             setFocusBadgeState(false);
                         }
                     });
 
-                    video.addEventListener('seeking', function () {
+                    video.addEventListener('seeking', function() {
                         if (isFreeNavigation || isResuming) {
                             return;
                         }
@@ -500,13 +525,13 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         if (video.currentTime > maxAllowedTime + 1.5) {
                             isForcing = true;
                             video.currentTime = maxAllowedTime;
-                            setTimeout(function () {
+                            setTimeout(function() {
                                 isForcing = false;
                             }, 50);
                         }
                     });
 
-                    video.addEventListener('timeupdate', function () {
+                    video.addEventListener('timeupdate', function() {
                         if (video.duration <= 0) {
                             return;
                         }
@@ -527,7 +552,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         if (!isResuming && video.currentTime > maxAllowedTime + 1.5) {
                             isForcing = true;
                             video.currentTime = maxAllowedTime;
-                            setTimeout(function () {
+                            setTimeout(function() {
                                 isForcing = false;
                             }, 50);
                         } else if (video.currentTime > maxAllowedTime && !video.seeking) {
@@ -537,12 +562,12 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                     });
 
                     // Save progress on pause.
-                    video.addEventListener('pause', function () {
+                    video.addEventListener('pause', function() {
                         saveProgress(highestPercent, true);
                     });
 
                     // Ensure 100% and save when video ends.
-                    video.addEventListener('ended', function () {
+                    video.addEventListener('ended', function() {
                         if (video.duration > 0 && video.duration > maxAllowedTime) {
                             maxAllowedTime = video.duration;
                         }
@@ -551,12 +576,46 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                     });
                 }
             } else {
+                var applyPendingYtResume = function(state, duration, currentTime) {
+                    var isActiveState = (state == YT.PlayerState.PLAYING || state == YT.PlayerState.BUFFERING);
+                    var hasPending = (pendingResumeSeconds > 0 || pendingResumePercent > 0);
+                    if (!isActiveState || !hasPending || !(duration > 0)) {
+                        return false;
+                    }
+                    var desiredSec = Math.max(pendingResumeSeconds, (pendingResumePercent / 100) * duration);
+                    if (desiredSec > maxAllowedTime) {
+                        maxAllowedTime = desiredSec;
+                    }
+                    if (state == YT.PlayerState.PLAYING && currentTime < desiredSec - 1.5) {
+                        pendingResumeSeconds = 0;
+                        pendingResumePercent = 0;
+                        window.ytPlayer.seekTo(desiredSec, true);
+                        return true;
+                    }
+                    if (currentTime >= desiredSec - 1.5) {
+                        pendingResumeSeconds = 0;
+                        pendingResumePercent = 0;
+                    }
+                    return false;
+                };
+
+                var enforceYtSeekLimit = function(state, duration, currentTime) {
+                    if (isFreeNavigation || isResuming || !(duration > 0)) {
+                        return;
+                    }
+                    if (state == YT.PlayerState.BUFFERING || state == YT.PlayerState.PLAYING) {
+                        if (currentTime > maxAllowedTime + 1.5) {
+                            window.ytPlayer.seekTo(maxAllowedTime, true);
+                        }
+                    }
+                };
+
                 /**
                  * Callback for when player state changes.
                  *
                  * @param {Object} event YT event.
                  */
-                var onPlayerStateChange = function (event) {
+                var onPlayerStateChange = function(event) {
                     var duration = window.ytPlayer.getDuration();
                     var currentTime = window.ytPlayer.getCurrentTime();
 
@@ -567,30 +626,11 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         }
                     }
 
-                    if ((event.data == YT.PlayerState.PLAYING || event.data == YT.PlayerState.BUFFERING) &&
-                        (pendingResumeSeconds > 0 || pendingResumePercent > 0) && duration > 0) {
-                        var desiredSec = Math.max(pendingResumeSeconds, (pendingResumePercent / 100) * duration);
-                        if (desiredSec > maxAllowedTime) {
-                            maxAllowedTime = desiredSec;
-                        }
-                        if (event.data == YT.PlayerState.PLAYING && currentTime < desiredSec - 1.5) {
-                            pendingResumeSeconds = 0;
-                            pendingResumePercent = 0;
-                            window.ytPlayer.seekTo(desiredSec, true);
-                            return;
-                        } else if (currentTime >= desiredSec - 1.5) {
-                            pendingResumeSeconds = 0;
-                            pendingResumePercent = 0;
-                        }
+                    if (applyPendingYtResume(event.data, duration, currentTime)) {
+                        return;
                     }
 
-                    if (!isFreeNavigation && duration > 0) {
-                        if (!isResuming && (event.data == YT.PlayerState.BUFFERING || event.data == YT.PlayerState.PLAYING)) {
-                            if (currentTime > maxAllowedTime + 1.5) {
-                                window.ytPlayer.seekTo(maxAllowedTime, true);
-                            }
-                        }
-                    }
+                    enforceYtSeekLimit(event.data, duration, currentTime);
 
                     if (event.data == YT.PlayerState.PLAYING) {
                         if (focusMode) {
@@ -601,7 +641,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         if (window.vtCheckTimer) {
                             clearInterval(window.vtCheckTimer);
                         }
-                        window.vtCheckTimer = setInterval(function () {
+                        window.vtCheckTimer = setInterval(function() {
                             if (focusMode && !document.hasFocus()) {
                                 if (isFullscreenOrTransitioning() && !document.hidden) {
                                     return;
@@ -609,7 +649,9 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                                 var topHasFocus = false;
                                 try {
                                     topHasFocus = !!(window.top && window.top.document && window.top.document.hasFocus());
-                                } catch (e) { }
+                                } catch (e) {
+                                    // Ignore cross-origin frame access errors.
+                                }
                                 if (!topHasFocus) {
                                     isWindowFocused = false;
                                     triggerFocusPause();
@@ -658,7 +700,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                     }
                 };
 
-                var initYTPlayer = function () {
+                var initYTPlayer = function() {
                     window.ytPlayer = new YT.Player('youtube-player', {
                         videoId: videoId,
                         playerVars: {
@@ -674,7 +716,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                 };
 
                 if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined') {
-                    window.onYouTubeIframeAPIReady = function () {
+                    window.onYouTubeIframeAPIReady = function() {
                         initYTPlayer();
                     };
                     var tag = document.createElement('script');

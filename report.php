@@ -284,7 +284,8 @@ echo '      <span class="vt-report-dot"></span>';
 echo '      <h3 class="vt-report-heading">' . format_string($videotrack->name) . ' — ' .
     s(get_string('report', 'mod_videotrack')) . '</h3>';
 echo '    </div>';
-echo '    <a href="' . s($courseurl) . '" class="vt-report-back-btn" title="' . s($backlabel) . '" aria-label="' . s($backlabel) . '">';
+echo '    <a href="' . s($courseurl) . '" class="vt-report-back-btn" title="' . s($backlabel) .
+    '" aria-label="' . s($backlabel) . '">';
 echo '      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" ' .
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
 echo '        <line x1="19" y1="12" x2="5" y2="12"></line>';

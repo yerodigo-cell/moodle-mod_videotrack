@@ -76,6 +76,7 @@ function videotrack_ensure_schema_columns(): void {
         }
     } catch (Throwable $e) {
         // Ignore if DB user cannot alter schema on the fly.
+        unset($e);
     }
 }
 
@@ -93,6 +94,7 @@ function videotrack_sync_cm_showdescription(int $cmid, int $displaymode): void {
             $DB->set_field('course_modules', 'showdescription', 1, ['id' => $cmid]);
         } catch (Throwable $e) {
             // Ignore if DB write is not permitted in current context.
+            unset($e);
         }
     }
 }
@@ -129,6 +131,7 @@ function videotrack_resolve_subtile_thumb(stdClass $vt, int $cmid): array {
         }
     } catch (Throwable $e) {
         // Fallback to URL inspection.
+        unset($e);
     }
 
     if ($url === '') {
@@ -136,7 +139,9 @@ function videotrack_resolve_subtile_thumb(stdClass $vt, int $cmid): array {
     }
 
     // 2. YouTube / YouTube Shorts URL.
-    if (preg_match('%(?:youtube(?:-nocookie)?[.]com/(?:[^/]+/.+/|(?:v|e(?:mbed)?|shorts)/|.*[?&]v=)|youtu[.]be/)([^"&?/ ]{11})%i', $url, $m)) {
+    $ytpattern = '%(?:youtube(?:-nocookie)?[.]com/(?:[^/]+/.+/|(?:v|e(?:mbed)?|shorts)/|.*[?&]v=)' .
+        '|youtu[.]be/)([^"&?/ ]{11})%i';
+    if (preg_match($ytpattern, $url, $m)) {
         return [
             'thumbtype' => 'image',
             'thumburl' => 'https://i.ytimg.com/vi/' . $m[1] . '/hqdefault.jpg',
@@ -507,7 +512,8 @@ function videotrack_inject_course_js(int $courseid): void {
             'if(!window.vtCourseItems||document.body.classList.contains("editing"))return;' .
             'var li=ev.target.closest("li.activity.videotrack");' .
             'if(!li)return;' .
-            'if(ev.target.closest(".activity-actions, .editing, .dropdown, .cm-edit-action, .completioncheckbox, [data-action]"))return;' .
+            'if(ev.target.closest(".activity-actions, .editing, .dropdown, ' .
+            '.cm-edit-action, .completioncheckbox, [data-action]"))return;' .
             'var cmid=0;' .
             'if(li.id&&li.id.indexOf("module-")===0){cmid=parseInt(li.id.replace("module-",""),10);}' .
             'if(!cmid&&li.dataset&&li.dataset.cmid){cmid=parseInt(li.dataset.cmid,10);}' .
@@ -535,6 +541,7 @@ function videotrack_inject_course_js(int $courseid): void {
         $PAGE->requires->js_init_code($js);
     } catch (Throwable $e) {
         // Ignore if course context is not ready.
+        unset($e);
     }
 }
 
@@ -1032,7 +1039,9 @@ function videotrack_cm_info_view(cm_info $cm) {
         $html .= '<div class="vt-popup-tile-card vt-course-card" style="--vt-accent: ' . s($accent) . ';" ' .
             'data-cmid="' . (int)$cm->id . '" data-modal="' . s($modalid) . '" data-iframe="' . s($iframeid) . '" ' .
             'data-src="' . s($popupurl) . '" data-title="' . $safetitleattr . '" ' .
-            'onclick="if(window.videotrackOpenPopup){return window.videotrackOpenPopup(this.dataset.cmid,this.dataset.src,this.dataset.title);}return false;">';
+            'onclick="if(window.videotrackOpenPopup){' .
+            'return window.videotrackOpenPopup(this.dataset.cmid,this.dataset.src,this.dataset.title);}' .
+            'return false;">';
         $html .= '  <div class="vt-popup-tile-thumb vt-course-card-thumb' . $thumbfallbackclass . '">';
         $html .= $thumbmediahtml;
         $html .= '    <div class="vt-subtile-thumb-overlay">';
@@ -1058,7 +1067,8 @@ function videotrack_cm_info_view(cm_info $cm) {
             'onclick="if(window.videotrackClosePopup){window.videotrackClosePopup();}">&times;</button>';
         $html .= '    </div>';
         $html .= '    <div class="vt-course-modal-body">';
-        $html .= '      <iframe id="' . $iframeid . '" src="about:blank" allowfullscreen="true" allow="autoplay; fullscreen"></iframe>';
+        $html .= '      <iframe id="' . $iframeid . '" src="about:blank" ' .
+            'allowfullscreen="true" allow="autoplay; fullscreen"></iframe>';
         $html .= '    </div>';
         $html .= '  </div>';
         $html .= '</div>';
@@ -1073,7 +1083,10 @@ function videotrack_cm_info_view(cm_info $cm) {
         $html .= '<div class="vt-course-inline-embed">';
         $html .= '  <iframe id="' . $iframeid . '" src="' . s($embedurl) . '" class="vt-course-inline-iframe" ' .
             'data-card=".videotrack-card" data-unit="px" ' .
-            'onload="try{var d=this.contentWindow.document;var c=d.querySelector(this.dataset.card);var r=c?c.getBoundingClientRect():null;var h=r?Math.ceil(r.bottom)+20:Math.max(d.body.scrollHeight,d.documentElement.scrollHeight);if(h>250)this.style.height=h+this.dataset.unit;}catch(e){}" ' .
+            'onload="try{var d=this.contentWindow.document;var c=d.querySelector(this.dataset.card);' .
+            'var r=c?c.getBoundingClientRect():null;' .
+            'var h=r?Math.ceil(r.bottom)+20:Math.max(d.body.scrollHeight,d.documentElement.scrollHeight);' .
+            'if(h>250)this.style.height=h+this.dataset.unit;}catch(e){}" ' .
             'allowfullscreen="true" allow="autoplay; fullscreen" scrolling="no"></iframe>';
         $html .= '</div>';
 

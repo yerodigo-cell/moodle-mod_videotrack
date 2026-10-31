@@ -1,7 +1,8 @@
 /* mod_videotrack styles */
+/* stylelint-disable declaration-no-important */
 
 /* Allow Moodle 4 Boost container to accommodate the wider 1024px card */
-#page-mod-videotrack-view #region-main>.card,
+#page-mod-videotrack-view #region-main > .card,
 #page-mod-videotrack-view .main-inner {
     max-width: 1120px !important;
     margin-left: auto !important;
@@ -15,7 +16,7 @@
     width: 100%;
     margin: 24px auto 32px auto;
     padding: 0;
-    background-color: #ffffff;
+    background-color: #fff;
     border-radius: 16px;
     border: 1px solid #e2e8f0;
     overflow: hidden;
@@ -29,7 +30,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px 20px;
-    background-color: #ffffff;
+    background-color: #fff;
     border-bottom: 1px solid #f1f5f9;
     flex-wrap: wrap;
 }
@@ -72,7 +73,7 @@
 }
 
 .vt-teacher-link:hover {
-    background-color: #ffffff;
+    background-color: #fff;
     border-color: var(--vt-accent, #0ea5e9);
     color: var(--vt-accent, #0ea5e9) !important;
     transform: translateY(-1px);
@@ -89,7 +90,7 @@
     height: 36px !important;
     padding: 0 !important;
     background-color: var(--vt-accent, #0ea5e9) !important;
-    color: #ffffff !important;
+    color: #fff !important;
     border: 0 !important;
     border-radius: 10px !important;
     text-decoration: none !important;
@@ -107,7 +108,7 @@
 .vt-squircle-back-btn:hover,
 .vt-back-btn:hover {
     background-color: var(--vt-accent, #0ea5e9) !important;
-    color: #ffffff !important;
+    color: #fff !important;
     filter: brightness(1.06);
     transform: translateY(-1px);
     box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18) !important;
@@ -231,7 +232,7 @@
 /* Card Footer (15px horizontal padding matches .vt-custom-controls for exact bar alignment) */
 .vt-card-footer {
     padding: 18px 15px 24px 15px;
-    background-color: #ffffff;
+    background-color: #fff;
     border-top: 1px solid #f1f5f9;
 }
 
@@ -314,12 +315,16 @@
     align-items: center;
     justify-content: center;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
     user-select: none;
 }
 
 .vt-react-btn:hover {
-    background: #ffffff;
+    background: #fff;
     border-color: #cbd5e1;
     transform: translateY(-2px) scale(1.18);
     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
@@ -416,7 +421,7 @@ video::cue {
 .vt-caption-box {
     display: inline-block;
     background: rgba(15, 23, 42, 0.78);
-    color: #ffffff;
+    color: #fff;
     padding: 6px 16px;
     border-radius: 6px;
     font-size: 1.05rem;
@@ -440,7 +445,7 @@ video::cue {
 }
 
 /* 20px timeline reaction markers with comfortable separation above the progress bar */
-#vt-reaction-markers>div {
+#vt-reaction-markers > div {
     font-size: 20px !important;
     line-height: 1;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
@@ -679,7 +684,7 @@ video::cue {
     max-width: 100% !important;
     margin: 6px 0 10px 0 !important;
     padding: 0 !important;
-    background: #ffffff !important;
+    background: #fff !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 14px !important;
     overflow: hidden !important;
@@ -713,14 +718,14 @@ video::cue {
 .vt-popup-tile-card:hover .vt-subtile-play-badge,
 .vt-course-card:hover .vt-subtile-play-badge {
     background: var(--vt-accent, #0ea5e9);
-    border-color: #ffffff;
+    border-color: #fff;
     transform: scale(1.12);
 }
 
 .vt-popup-tile-footer,
 .vt-course-card-footer {
     padding: 10px 14px 10px 14px !important;
-    background: #ffffff !important;
+    background: #fff !important;
     border-top: 1px solid #f1f5f9 !important;
     box-sizing: border-box !important;
 }
@@ -761,7 +766,7 @@ video::cue {
     overflow: hidden;
 }
 
-.vt-course-card-bar>div {
+.vt-course-card-bar > div {
     height: 100%;
     border-radius: 999px;
     transition: width 0.4s ease;
@@ -784,7 +789,7 @@ video::cue {
     max-width: 900px;
     height: 92vh;
     max-height: 860px;
-    background: #ffffff;
+    background: #fff;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
@@ -821,7 +826,7 @@ video::cue {
     width: 100%;
     flex: 1;
     min-height: 0;
-    background: #ffffff;
+    background: #fff;
     overflow: hidden;
 }
 
@@ -923,7 +928,7 @@ video::cue {
         bottom: 12px !important;
     }
 
-    #vt-reaction-markers>div {
+    #vt-reaction-markers > div {
         font-size: 15px !important;
     }
 
@@ -1119,7 +1124,7 @@ body.format-tiles li.activity.subtile.videotrack.vt-enhanced-subtile:hover .vt-s
     border-radius: 50%;
     background: rgba(15, 23, 42, 0.68);
     border: 2px solid rgba(255, 255, 255, 0.88);
-    color: #ffffff;
+    color: #fff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1132,7 +1137,7 @@ body.format-tiles li.activity.subtile.videotrack.vt-enhanced-subtile:hover .vt-s
 
 body.format-tiles li.activity.subtile.videotrack.vt-enhanced-subtile:hover .vt-subtile-play-badge {
     background: var(--vt-accent, #0ea5e9);
-    border-color: #ffffff;
+    border-color: #fff;
     transform: scale(1.12);
 }
 
@@ -1144,7 +1149,7 @@ body.format-tiles li.activity.subtile.videotrack.vt-enhanced-subtile:hover .vt-s
     width: 100% !important;
     box-sizing: border-box !important;
     padding: 10px 14px 10px 14px !important;
-    background: #ffffff !important;
+    background: #fff !important;
     border-top: 1px solid #f1f5f9 !important;
     z-index: 5;
 }
@@ -1190,3 +1195,4 @@ body.format-tiles li.activity.subtile.videotrack.vt-enhanced-subtile:hover .vt-s
     background: var(--vt-accent, #0ea5e9);
     border-radius: 999px;
 }
+/* stylelint-enable declaration-no-important */

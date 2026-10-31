@@ -72,6 +72,7 @@ class mod_videotrack_mod_form extends moodleform_mod {
                     core_filetypes::add_type('srt', 'text/plain', 'text', ['document'], '', 'SubRip Subtitle');
                 } catch (Throwable $e) {
                     // Ignore if already exists or cannot be written.
+                    unset($e);
                 }
             }
         }
@@ -281,8 +282,10 @@ class mod_videotrack_mod_form extends moodleform_mod {
                 $data->targetpercent = (int)$data->{$valueel};
             }
 
-            if (empty($data->{$enabledel}) ||
-                (isset($data->completion) && (int)$data->completion !== COMPLETION_TRACKING_AUTOMATIC)) {
+            if (
+                empty($data->{$enabledel}) ||
+                (isset($data->completion) && (int)$data->completion !== COMPLETION_TRACKING_AUTOMATIC)
+            ) {
                 $data->targetpercent = 0;
             }
         } else if (!empty($this->current->instance) && isset($this->current->targetpercent)) {

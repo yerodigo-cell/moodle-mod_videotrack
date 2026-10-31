@@ -20,7 +20,7 @@
  * @copyright  2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notification) {
+define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notification) {
     var reactionEmojis = {
         'like': '👍',
         'heart': '❤️',
@@ -34,21 +34,21 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
     };
 
     return {
-        init: function (cmid, isYouTube) {
+        init: function(cmid, isYouTube) {
             var loadedReactions = [];
             var displayedReactions = {}; // To prevent showing the same reaction multiple times
 
             // Fetch existing reactions from server
             ajax.call([{
                 methodname: 'mod_videotrack_get_reactions',
-                args: { cmid: cmid }
-            }])[0].done(function (result) {
+                args: {cmid: cmid}
+            }])[0].done(function(result) {
                 if (result.reactions) {
                     loadedReactions = result.reactions;
                 }
             }).fail(notification.exception);
 
-            var getExactTime = function () {
+            var getExactTime = function() {
                 if (isYouTube && window.ytPlayer && window.ytPlayer.getCurrentTime) {
                     return window.ytPlayer.getCurrentTime();
                 } else {
@@ -60,11 +60,11 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                 return 0;
             };
 
-            var getCurrentTime = function () {
+            var getCurrentTime = function() {
                 return Math.round(getExactTime());
             };
 
-            var getDuration = function () {
+            var getDuration = function() {
                 if (isYouTube && window.ytPlayer && window.ytPlayer.getDuration) {
                     return window.ytPlayer.getDuration();
                 } else {
@@ -76,7 +76,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                 return 0;
             };
 
-            var displayFloatingReaction = function (reactionCode) {
+            var displayFloatingReaction = function(reactionCode) {
                 var emoji = reactionEmojis[reactionCode] || '👍';
                 var container = $('#vt-floating-reactions');
 
@@ -88,12 +88,12 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                 container.append(el);
 
                 // Remove the element after animation completes (3 seconds)
-                setTimeout(function () {
+                setTimeout(function() {
                     el.remove();
                 }, 3000);
             };
 
-            window.videotrackReact = function (reactionCode) {
+            window.videotrackReact = function(reactionCode) {
                 var exactTime = 0;
                 var currentTime = 0;
                 try {
@@ -115,7 +115,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         reaction: reactionCode,
                         timeoffset: currentTime
                     }
-                }])[0].done(function (response) {
+                }])[0].done(function(response) {
                     // Add it to local array so it can be re-played if user seeks back
                     loadedReactions.push({
                         id: response.reactionid,
@@ -123,14 +123,14 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         timeoffset: currentTime,
                         exacttime: exactTime
                     });
-                }).fail(function (ex) {
+                }).fail(function(ex) {
                     // eslint-disable-next-line no-console
                     console.log('Error saving reaction:', ex);
                 });
             };
 
             // Handle user clicking on reaction bar using event delegation
-            $(document).on('click', '.vt-react-btn', function (e) {
+            $(document).on('click', '.vt-react-btn', function(e) {
                 e.preventDefault();
                 var btn = $(this);
                 var reactionCode = btn.data('reaction');
@@ -138,7 +138,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
             });
 
             // Check loop for displaying existing reactions
-            setInterval(function () {
+            setInterval(function() {
                 var currentTime = getCurrentTime();
                 var duration = getDuration();
 
@@ -178,8 +178,8 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, ajax, notifica
                         var verticalOffset = '0px';
                         if ($('#' + markerId).length === 0) {
                             var markerHtml = '<div id="' + markerId + '" ' +
-                                'style="position: absolute; left: calc(' + percentage + '% + ' + thumbOffsetPx + 'px); bottom: 0px; ' +
-                                'font-size: 20px; line-height: 1; --vt-y-offset: ' + verticalOffset + '; ' +
+                                'style="position: absolute; left: calc(' + percentage + '% + ' + thumbOffsetPx + 'px); ' +
+                                'bottom: 0px; font-size: 20px; line-height: 1; --vt-y-offset: ' + verticalOffset + '; ' +
                                 'transform: translate(-50%, ' + verticalOffset + '); z-index: 5; ' +
                                 'text-shadow: 0 1px 3px rgba(0,0,0,0.45); ' +
                                 'animation: vt-pop-in 0.4s ease-out forwards;">' + emoji + '</div>';

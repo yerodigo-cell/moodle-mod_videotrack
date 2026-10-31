@@ -20,9 +20,9 @@
  * @copyright  2026 EduPlugins Studio
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define(['jquery'], function ($) {
+define(['jquery'], function($) {
     return {
-        init: function (isYouTube) {
+        init: function(isYouTube) {
             var playPauseBtn = $('#vt-play-pause-btn');
             var playPauseIcon = playPauseBtn.find('i');
             var muteBtn = $('#vt-mute-btn');
@@ -41,7 +41,7 @@ define(['jquery'], function ($) {
             // Start in paused visual state so controls are visible initially
             $(wrapper).addClass('vt-is-paused');
 
-            var parseTimestamp = function (timeStr) {
+            var parseTimestamp = function(timeStr) {
                 var clean = $.trim(timeStr).replace(',', '.');
                 var parts = clean.split(':');
                 if (parts.length === 3) {
@@ -52,7 +52,7 @@ define(['jquery'], function ($) {
                 return 0;
             };
 
-            var parseSubtitleText = function (rawText) {
+            var parseSubtitleText = function(rawText) {
                 var cues = [];
                 if (!rawText) {
                     return cues;
@@ -107,14 +107,14 @@ define(['jquery'], function ($) {
                 $.ajax({
                     url: trackEl.getAttribute('src'),
                     dataType: 'text',
-                    success: function (data) {
+                    success: function(data) {
                         parsedCues = parseSubtitleText(data);
                         renderActiveCues();
                     }
                 });
             }
 
-            var formatTime = function (seconds, forceHours) {
+            var formatTime = function(seconds, forceHours) {
                 if (isNaN(seconds)) {
                     return forceHours ? "0:00:00" : "0:00";
                 }
@@ -129,7 +129,7 @@ define(['jquery'], function ($) {
                 }
             };
 
-            var updateTimeUI = function (currentTime, duration) {
+            var updateTimeUI = function(currentTime, duration) {
                 var isResumeActive = $('#vt-resume-overlay').is(':visible');
                 if (isResumeActive) {
                     var targetPercent = Number($('#vt-progress-text').text().replace('%', '')) || 0;
@@ -150,7 +150,7 @@ define(['jquery'], function ($) {
                 timeDisplay.text(formatTime(currentTime, hasHours) + ' / ' + formatTime(duration, hasHours));
             };
 
-            var renderActiveCues = function () {
+            var renderActiveCues = function() {
                 if (!video || !captionsEnabled) {
                     customCaptions.hide().empty();
                     return;
@@ -191,7 +191,7 @@ define(['jquery'], function ($) {
                 }
             };
 
-            var togglePlay = function () {
+            var togglePlay = function() {
                 if ($('#vt-resume-overlay').is(':visible')) {
                     if (window.videotrackResume) {
                         window.videotrackResume();
@@ -215,7 +215,7 @@ define(['jquery'], function ($) {
                 }
             };
 
-            var toggleMute = function () {
+            var toggleMute = function() {
                 if (isYouTube && window.ytPlayer) {
                     if (window.ytPlayer.isMuted()) {
                         window.ytPlayer.unMute();
@@ -234,7 +234,7 @@ define(['jquery'], function ($) {
                 }
             };
 
-            var toggleCaptions = function () {
+            var toggleCaptions = function() {
                 captionsEnabled = !captionsEnabled;
                 if (captionsEnabled) {
                     ccBtn.addClass('vt-cc-active');
@@ -244,16 +244,18 @@ define(['jquery'], function ($) {
                 renderActiveCues();
             };
 
-            var markFullscreenTransition = function () {
+            var markFullscreenTransition = function() {
                 window.vtFullscreenTransitionUntil = Date.now() + 1200;
                 try {
                     if (window.parent && window.parent !== window) {
                         window.parent.vtFullscreenTransitionUntil = Date.now() + 1200;
                     }
-                } catch (e) { }
+                } catch (e) {
+                    // Ignore cross-origin frame access errors.
+                }
             };
 
-            var toggleFullscreen = function () {
+            var toggleFullscreen = function() {
                 markFullscreenTransition();
                 if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
                     if (wrapper.requestFullscreen) {
@@ -276,7 +278,7 @@ define(['jquery'], function ($) {
                 }
             };
 
-            var onSeek = function () {
+            var onSeek = function() {
                 var percent = seekSlider.val();
                 if (isYouTube && window.ytPlayer) {
                     var duration = window.ytPlayer.getDuration();
@@ -293,11 +295,11 @@ define(['jquery'], function ($) {
             ccBtn.on('click', toggleCaptions);
             fullscreenBtn.on('click', toggleFullscreen);
 
-            seekSlider.on('input', function () {
+            seekSlider.on('input', function() {
                 isSeeking = true;
                 seekSlider.css('--vt-progress', $(this).val() + '%');
             });
-            seekSlider.on('change', function () {
+            seekSlider.on('change', function() {
                 onSeek();
                 isSeeking = false;
             });
@@ -310,7 +312,7 @@ define(['jquery'], function ($) {
                     track.addEventListener('cuechange', renderActiveCues);
                 }
 
-                video.addEventListener('error', function () {
+                video.addEventListener('error', function() {
                     var error = video.error;
                     var errorMsg = "Video Error Code: " + (error ? error.code : 'Unknown');
                     if (error && error.code === 1) {
@@ -337,19 +339,19 @@ define(['jquery'], function ($) {
 
                 $(video).on('click', togglePlay);
 
-                video.addEventListener('play', function () {
+                video.addEventListener('play', function() {
                     playPauseIcon.removeClass('fa-play').addClass('fa-pause');
                     $(wrapper).removeClass('vt-is-paused');
                 });
-                video.addEventListener('pause', function () {
+                video.addEventListener('pause', function() {
                     playPauseIcon.removeClass('fa-pause').addClass('fa-play');
                     $(wrapper).addClass('vt-is-paused');
                 });
-                video.addEventListener('timeupdate', function () {
+                video.addEventListener('timeupdate', function() {
                     updateTimeUI(video.currentTime, video.duration);
                     renderActiveCues();
                 });
-                video.addEventListener('loadedmetadata', function () {
+                video.addEventListener('loadedmetadata', function() {
                     updateTimeUI(video.currentTime, video.duration);
                     if (video.textTracks && video.textTracks.length > 0) {
                         video.textTracks[0].mode = 'hidden';
@@ -361,7 +363,7 @@ define(['jquery'], function ($) {
 
             // YouTube Event Polling
             if (isYouTube) {
-                setInterval(function () {
+                setInterval(function() {
                     if (window.ytPlayer && window.ytPlayer.getPlayerState) {
                         var state = window.ytPlayer.getPlayerState();
                         if (state === 1) {
@@ -381,7 +383,7 @@ define(['jquery'], function ($) {
 
             // Show/hide controls smoothly (Touch & Mouse)
             var controlTimeout;
-            var wakeControls = function () {
+            var wakeControls = function() {
                 $(wrapper).addClass('vt-active-controls');
                 clearTimeout(controlTimeout);
 
@@ -393,7 +395,7 @@ define(['jquery'], function ($) {
                 }
 
                 if (isPlaying) {
-                    controlTimeout = setTimeout(function () {
+                    controlTimeout = setTimeout(function() {
                         $(wrapper).removeClass('vt-active-controls');
                     }, 3000);
                 }
@@ -406,7 +408,7 @@ define(['jquery'], function ($) {
             }
 
             // Fullscreen change listener to update icon and CSS classes
-            var handleFsChange = function () {
+            var handleFsChange = function() {
                 markFullscreenTransition();
                 var isFs = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
                 if (isFs) {
