@@ -24,12 +24,12 @@
 
 namespace mod_videotrack\external;
 
-use context_module;
 use completion_info;
+use context_module;
 use external_api;
 use external_function_parameters;
-use external_value;
 use external_single_structure;
+use external_value;
 use invalid_parameter_exception;
 use stdClass;
 
@@ -43,7 +43,8 @@ require_once($CFG->libdir . '/externallib.php');
  */
 class save_progress extends external_api {
     /**
-     * Maximum allowed percentage jump in a single unauthenticated first report when targetpercent > 50.
+     * Maximum allowed percentage jump in a single telemetry report when targetpercent > 0.
+     * Prevents completing an activity in a single unauthenticated jump (e.g. 0% -> 100%).
      */
     public const MAX_SINGLE_PERCENT_JUMP = 50;
 
@@ -120,11 +121,13 @@ class save_progress extends external_api {
             'userid' => $USER->id,
         ]);
 
-        // 2. Server-side plausibility check against prior progress (VTRK-SEC-001).
+        // 2. Server-side plausibility check against prior progress and wall-clock time (VTRK-SEC-001).
         $targetpercent = (int)$videotrack->targetpercent;
         $duration = isset($videotrack->manualtime) ? (int)$videotrack->manualtime : 0;
 
         if (!self::is_progress_plausible($progress ?: null, $percent, $currenttime, $targetpercent, $duration, $now)) {
+            // If no baseline record exists yet, initialize a 0% baseline so future incremental
+            // telemetry reports have a server-side wall-clock reference timestamp.
             if (!$progress) {
                 $baseline = new stdClass();
                 $baseline->videotrackid = $videotrack->id;
@@ -146,15 +149,24 @@ class save_progress extends external_api {
         $completed = ($targetpercent <= 0 || $effectivepercent >= $targetpercent) ? 1 : 0;
 
         if ($progress) {
-            $progress->highestpercent = $effectivepercent;
+            $updated = false;
+            if ($effectivepercent > (int)$progress->highestpercent) {
+                $progress->highestpercent = $effectivepercent;
+                $updated = true;
+            }
             if (isset($progress->highesttime) && $currenttime > (int)$progress->highesttime) {
                 $progress->highesttime = $currenttime;
+                $updated = true;
             } else if (!isset($progress->highesttime) && $currenttime > 0) {
                 $progress->highesttime = $currenttime;
+                $updated = true;
             }
-            if ($completed) {
+            if ($completed && empty($progress->iscompleted)) {
                 $progress->iscompleted = 1;
+                $updated = true;
             }
+
+            // Always update timemodified on valid telemetry so subsequent wall-clock checks stay accurate.
             $progress->timemodified = $now;
             $DB->update_record('videotrack_progress', $progress);
         } else {
@@ -169,7 +181,7 @@ class save_progress extends external_api {
             $DB->insert_record('videotrack_progress', $progress);
         }
 
-        // Update Moodle completion when target is reached.
+        // Update Moodle completion only after passing range and plausibility checks.
         if (!empty($progress->iscompleted)) {
             $course = get_course($cm->course);
             require_once($CFG->libdir . '/completionlib.php');
@@ -207,27 +219,49 @@ class save_progress extends external_api {
             return true;
         }
 
-        // Only if no baseline record exists at all (direct API call without opening view.php),
-        // reject a single jump > 50%.
         if ($progress === null) {
+            // First telemetry report: reject any single jump that reaches the completion target
+            // or exceeds MAX_SINGLE_PERCENT_JUMP.
             if ($percent > self::MAX_SINGLE_PERCENT_JUMP) {
+                return false;
+            }
+            if ($targetpercent > 0 && $percent >= $targetpercent) {
                 return false;
             }
             return true;
         }
 
         $prevpercent = (int)$progress->highestpercent;
+        $prevtime = isset($progress->highesttime) ? (int)$progress->highesttime : 0;
+        $elapsed = max(0, $now - (int)$progress->timemodified);
+
         $percentdelta = $percent - $prevpercent;
+        $timedelta = $currenttime - $prevtime;
+
+        // If neither percent nor time advanced (e.g. re-watching previously completed sections), allow it.
+        if ($percentdelta <= 0 && $timedelta <= 0) {
+            return true;
+        }
 
         // Reject single unauthenticated jumps > 50% from 0% when no time has elapsed.
-        $elapsed = max(0, $now - (int)$progress->timemodified);
         if ($prevpercent === 0 && $percentdelta > self::MAX_SINGLE_PERCENT_JUMP && $elapsed < 2) {
             return false;
         }
 
-        // If manualtime duration is explicitly set (Google Drive manual timer mode), check wall-clock speed.
-        if ($duration > 0 && $percentdelta > self::MAX_SINGLE_PERCENT_JUMP) {
-            $maxallowedadvance = ($elapsed * self::MAX_PLAYBACK_RATE) + self::CLOCK_GRACE_SECONDS;
+        // 1. Require incremental reports: reject single jumps > 50 percentage points.
+        if ($percentdelta > self::MAX_SINGLE_PERCENT_JUMP) {
+            return false;
+        }
+
+        // 2. If playback seconds increased, check against wall-clock time elapsed since last report.
+        $maxallowedadvance = ($elapsed * self::MAX_PLAYBACK_RATE) + self::CLOCK_GRACE_SECONDS;
+        if ($timedelta > 0 && $timedelta > $maxallowedadvance) {
+            return false;
+        }
+
+        // 3. If the activity has a configured duration (manualtime > 0), also check that the
+        // percentage increment does not exceed what wall-clock time allows.
+        if ($duration > 0 && $percentdelta > 0) {
             $impliedseconds = ($percentdelta / 100.0) * $duration;
             if ($impliedseconds > $maxallowedadvance) {
                 return false;
