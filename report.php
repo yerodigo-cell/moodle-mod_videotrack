@@ -174,6 +174,49 @@ echo '<style>
     font-weight: 600;
     color: #0f172a;
 }
+.vt-report-student > a,
+.vt-report-student .userpicture,
+.vt-report-student .userinitials {
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+}
+.vt-report-student > a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    text-decoration: none !important;
+}
+.vt-report-student img.userpicture {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    display: block !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+}
+.vt-report-student span.userinitials {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 50% !important;
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: var(--vt-accent, #0ea5e9) !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1 !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+    box-sizing: border-box !important;
+}
 .vt-report-progress-cell {
     display: flex;
     align-items: center;
@@ -295,7 +338,7 @@ if (empty($users)) {
             $fullname = $user->firstname . ' ' . $user->lastname;
         }
 
-        $userpicture = $OUTPUT->user_picture($user, ['size' => 36]);
+        $userpicture = $OUTPUT->user_picture($user, ['size' => 38, 'link' => false]);
         if (is_object($userpicture)) {
             $userpicture = '';
         }

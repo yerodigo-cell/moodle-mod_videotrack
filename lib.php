@@ -1017,8 +1017,8 @@ function videotrack_cm_info_view(cm_info $cm) {
         $thumbfallbackclass = '';
         if ($thumbtype === 'image' && $thumburl !== '') {
             $thumbmediahtml = '<img class="vt-subtile-thumb-media" src="' . s($thumburl) . '" ' .
-                'alt="' . $safetitleattr . '" loading="lazy" ' .
-                'onerror="this.style.display=\'none\';this.parentNode.classList.add(\'vt-subtile-thumb-fallback\');">';
+                'alt="' . $safetitleattr . '" loading="lazy" data-fb="vt-subtile-thumb-fallback" ' .
+                'onerror="this.hidden=true;this.parentNode.classList.add(this.dataset.fb);">';
         } else if ($thumbtype === 'video' && $thumburl !== '') {
             $videosrc = (strpos($thumburl, '#') === false) ? ($thumburl . '#t=' . $thumbsec) : $thumburl;
             $thumbmediahtml = '<video class="vt-subtile-thumb-media" src="' . s($videosrc) . '" ' .
