@@ -178,8 +178,8 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                         var verticalOffset = '0px';
                         if ($('#' + markerId).length === 0) {
                             var markerHtml = '<div id="' + markerId + '" ' +
-                                'style="position: absolute; left: calc(' + percentage + '% + ' + thumbOffsetPx + 'px); bottom: 0px; ' +
-                                'font-size: 20px; line-height: 1; --vt-y-offset: ' + verticalOffset + '; ' +
+                                'style="position: absolute; left: calc(' + percentage + '% + ' + thumbOffsetPx + 'px); ' +
+                                'bottom: 0px; font-size: 20px; line-height: 1; --vt-y-offset: ' + verticalOffset + '; ' +
                                 'transform: translate(-50%, ' + verticalOffset + '); z-index: 5; ' +
                                 'animation: vt-pop-in 0.4s ease-out forwards;">' + emoji + '</div>';
                             var marker = $(markerHtml);

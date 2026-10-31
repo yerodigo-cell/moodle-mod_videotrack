@@ -51,7 +51,7 @@
 
 .vt-completed-check {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: #ffffff;
+    color: #fff;
     width: 34px;
     height: 34px;
     border-radius: 50%;
@@ -309,13 +309,13 @@
 
 .videotrack-card.vt-has-custom-accent #vt-resume-btn {
     background-color: var(--vt-accent, #14283b);
-    color: #ffffff;
+    color: #fff;
 }
 
 .videotrack-card.vt-has-custom-accent #vt-resume-btn:hover {
     background-color: var(--vt-accent, #1a364d);
     filter: brightness(1.08);
-    color: #ffffff;
+    color: #fff;
 }
 
 .videotrack-card.vt-has-custom-accent #vt-resume-btn:focus {
@@ -594,7 +594,12 @@ video::cue {
 }
 
 .videotrack-card.vt-has-custom-accent .vt-seek-slider {
-    background: linear-gradient(to right, var(--vt-accent, #fff) var(--vt-progress, 0%), rgba(255, 255, 255, 0.3) var(--vt-progress, 0%));
+    background:
+        linear-gradient(
+            to right,
+            var(--vt-accent, #fff) var(--vt-progress, 0%),
+            rgba(255, 255, 255, 0.3) var(--vt-progress, 0%)
+        );
 }
 
 .vt-seek-slider::-webkit-slider-thumb {

@@ -266,7 +266,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
             if (focusMode) {
                 initFocusListeners();
                 if (isGDriveIframe || isManualTrack) {
-                    setInterval(function () {
+                    setInterval(function() {
                         if (isFullscreenOrTransitioning() && !document.hidden) {
                             return;
                         }
@@ -276,7 +276,9 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                                 if (window.top && window.top !== window && window.top.document && window.top.document.hasFocus()) {
                                     hasFocusNow = true;
                                 }
-                            } catch (e) { }
+                            } catch (e) {
+                                // Ignore cross-origin frame access errors.
+                            }
                         }
                         if (!hasFocusNow && isWindowFocused) {
                             isWindowFocused = false;
