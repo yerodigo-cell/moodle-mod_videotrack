@@ -265,9 +265,12 @@ function videotrack_inject_course_js(int $courseid): void {
                     'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-altcontent,' .
                     'body:not(.editing) #module-' . $cid . ':not(.subtile) .description,' .
                     'body:not(.editing) #module-' . $cid . ':not(.subtile) .activity-description,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .course-description-item,' .
+                    'body:not(.editing) #module-' . $cid . ':not(.subtile) .description-inner,' .
                     'body:not(.editing) #module-' . $cid . ':not(.subtile) .contentwithoutlink' .
-                    '{border-top:0!important;border-bottom:0!important;padding-top:0!important;' .
-                    'padding-left:0!important;margin-top:0!important;margin-left:0!important;}';
+                    '{background:transparent!important;background-color:transparent!important;' .
+                    'border:0!important;border-radius:0!important;box-shadow:none!important;' .
+                    'padding:0!important;margin:0!important;}';
             }
         }
 

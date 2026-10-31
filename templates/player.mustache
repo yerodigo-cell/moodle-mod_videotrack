@@ -69,13 +69,20 @@
                 </svg>
             </a>
         </div>
-        {{#focusmode}}
-        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
-            <span class="vt-focus-dot" id="vt-focus-dot"></span>
-            <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
-            <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+        <div class="vt-header-right">
+            {{#showprogressbar}}
+            <div id="vt-success-msg" class="vt-completed-check {{^iscompleted}}d-none{{/iscompleted}}" title="{{successmsg}}" aria-label="{{successmsg}}">
+                <i class="fa fa-check" aria-hidden="true"></i>
+            </div>
+            {{/showprogressbar}}
+            {{#focusmode}}
+            <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
+                <span class="vt-focus-dot" id="vt-focus-dot"></span>
+                <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
+                <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+            </div>
+            {{/focusmode}}
         </div>
-        {{/focusmode}}
     </div>
     {{/courseurl}}
     {{^courseurl}}
@@ -104,13 +111,20 @@
             </div>
             {{/canmanage}}
         </div>
-        {{#focusmode}}
-        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
-            <span class="vt-focus-dot" id="vt-focus-dot"></span>
-            <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
-            <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+        <div class="vt-header-right">
+            {{#showprogressbar}}
+            <div id="vt-success-msg" class="vt-completed-check {{^iscompleted}}d-none{{/iscompleted}}" title="{{successmsg}}" aria-label="{{successmsg}}">
+                <i class="fa fa-check" aria-hidden="true"></i>
+            </div>
+            {{/showprogressbar}}
+            {{#focusmode}}
+            <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
+                <span class="vt-focus-dot" id="vt-focus-dot"></span>
+                <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
+                <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+            </div>
+            {{/focusmode}}
         </div>
-        {{/focusmode}}
     </div>
     {{/inpopup}}
     {{#inpopup}}
@@ -133,25 +147,39 @@
                 </a>
             </div>
         </div>
-        {{#focusmode}}
-        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
-            <span class="vt-focus-dot" id="vt-focus-dot"></span>
-            <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
-            <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+        <div class="vt-header-right">
+            {{#showprogressbar}}
+            <div id="vt-success-msg" class="vt-completed-check {{^iscompleted}}d-none{{/iscompleted}}" title="{{successmsg}}" aria-label="{{successmsg}}">
+                <i class="fa fa-check" aria-hidden="true"></i>
+            </div>
+            {{/showprogressbar}}
+            {{#focusmode}}
+            <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
+                <span class="vt-focus-dot" id="vt-focus-dot"></span>
+                <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
+                <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+            </div>
+            {{/focusmode}}
         </div>
-        {{/focusmode}}
     </div>
     {{/canmanage}}
     {{^canmanage}}
-    {{#focusmode}}
     <div class="vt-card-header" style="justify-content: flex-end;">
-        <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
-            <span class="vt-focus-dot" id="vt-focus-dot"></span>
-            <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
-            <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+        <div class="vt-header-right">
+            {{#showprogressbar}}
+            <div id="vt-success-msg" class="vt-completed-check {{^iscompleted}}d-none{{/iscompleted}}" title="{{successmsg}}" aria-label="{{successmsg}}">
+                <i class="fa fa-check" aria-hidden="true"></i>
+            </div>
+            {{/showprogressbar}}
+            {{#focusmode}}
+            <div id="vt-focus-badge" class="vt-focus-badge" data-default-text="{{focusmodebadge}}" data-paused-text="{{focusmodepaused}}" title="{{focusmodebadge}}">
+                <span class="vt-focus-dot" id="vt-focus-dot"></span>
+                <i class="fa fa-pause-circle vt-focus-pause-icon" id="vt-focus-pause-icon" aria-hidden="true"></i>
+                <span class="vt-focus-text" id="vt-focus-text">{{focusmodebadge}}</span>
+            </div>
+            {{/focusmode}}
         </div>
     </div>
-    {{/focusmode}}
     {{/canmanage}}
     {{/inpopup}}
     {{/courseurl}}
@@ -296,16 +324,6 @@
                 <div id="vt-progress-bar" class="vt-progress-bar-fill" role="progressbar" style="height: 100%; width: {{currentpercent}}%; border-radius: 100px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);" aria-valuenow="{{currentpercent}}" aria-valuemin="0" aria-valuemax="100">
                 </div>
             </div>
-
-            <!-- Success message -->
-            <div id="vt-success-msg" class="mt-4 {{^iscompleted}}d-none{{/iscompleted}}" style="display: flex; align-items: center; gap: 14px; background: #f0fdf4; padding: 14px 18px; border-radius: 12px; border: 1px solid #bbf7d0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);">
-                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);">
-                    <i class="fa fa-check" style="font-size: 14px;"></i>
-                </div>
-                <div>
-                    <span style="font-weight: 600; font-size: 0.92rem; color: #065f46; letter-spacing: -0.01em;">{{ successmsg }}</span>
-                </div>
-            </div>
             {{/showprogressbar}}
         </div>
     </div>
@@ -334,39 +352,64 @@ require(['jquery'], function($) {
     var syncParentIframeHeight = function() {
         var isFs = document.fullscreenElement || document.webkitFullscreenElement ||
                    document.querySelector('.vt-player-wrapper.vt-is-fullscreen');
-        if (isFs || !window.parent || window.parent !== window) {
+        if (isFs) {
             return;
         }
-        try {
-            document.body.style.margin = '0';
-            document.body.style.background = 'transparent';
-            if (inPopup) {
-                applyPopupParentSizing();
-                return;
-            }
-            document.documentElement.style.overflow = 'hidden';
-            document.body.style.overflow = 'hidden';
-            document.body.style.padding = '4px 0 16px 0';
-            var card = document.querySelector('.videotrack-card');
-            if (!card) {
-                return;
-            }
-            var rect = card.getBoundingClientRect();
-            var scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
-            var exactHeight = Math.ceil(rect.bottom + scrollTop) + 20;
-            if (exactHeight > 250) {
-                if (window.frameElement) {
-                    window.frameElement.style.height = exactHeight + 'px';
-                    window.frameElement.style.maxHeight = 'none';
+        var navEls = document.querySelectorAll(
+            '.activity-navigation, .section-navigation, [data-region="activity-navigation"], #prev-activity-link, #next-activity-link'
+        );
+        for (var i = 0; i < navEls.length; i++) {
+            var navWrap = navEls[i].closest('.activity-navigation, .section-navigation, .mt-5, .border-top, nav') || navEls[i];
+            navWrap.style.setProperty('display', 'none', 'important');
+        }
+        if (window.parent && window.parent !== window) {
+            try {
+                document.body.style.margin = '0';
+                document.body.style.background = 'transparent';
+                var card = document.querySelector('.videotrack-card');
+                if (card) {
+                    var parentContainer = card.parentElement;
+                    while (parentContainer && parentContainer !== document.body) {
+                        var siblings = parentContainer.children;
+                        for (var s = 0; s < siblings.length; s++) {
+                            if (siblings[s] !== card && !siblings[s].contains(card)) {
+                                siblings[s].style.setProperty('display', 'none', 'important');
+                            }
+                        }
+                        parentContainer = parentContainer.parentElement;
+                    }
                 }
-                window.parent.postMessage({
-                    type: 'vt-resize',
-                    cmid: "{{cmid}}",
-                    height: exactHeight
-                }, '*');
-            }
-        } catch (e) {
-            // Ignore cross-origin frame access errors.
+                if (inPopup) {
+                    document.documentElement.style.overflowY = 'auto';
+                    document.body.style.overflowY = 'auto';
+                    document.body.style.padding = '8px 10px 12px 10px';
+                    if (card && window.frameElement && window.parent.innerWidth <= 768) {
+                        var popH = Math.ceil(card.offsetHeight) + 24;
+                        if (popH > 220) {
+                            window.frameElement.style.height = popH + 'px';
+                        }
+                    }
+                    return;
+                }
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
+                document.body.style.padding = '4px 0 8px 0';
+                if (card) {
+                    var exactHeight = Math.ceil(card.offsetHeight) + 16;
+                    if (exactHeight > 250) {
+                        if (window.frameElement) {
+                            window.frameElement.style.height = exactHeight + 'px';
+                            window.frameElement.style.minHeight = exactHeight + 'px';
+                            window.frameElement.style.maxHeight = 'none';
+                        }
+                        window.parent.postMessage({
+                            type: 'vt-resize',
+                            cmid: "{{cmid}}",
+                            height: exactHeight
+                        }, '*');
+                    }
+                }
+            } catch (e) {}
         }
     };
 

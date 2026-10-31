@@ -42,6 +42,28 @@
     flex-wrap: wrap;
 }
 
+.vt-header-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.vt-completed-check {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);
+    font-size: 14px;
+    cursor: default;
+}
+
 .vt-teacher-actions {
     display: inline-flex;
     align-items: center;
@@ -285,6 +307,22 @@
     box-shadow: 0 0 0 3px rgba(20, 40, 59, 0.5);
 }
 
+.videotrack-card.vt-has-custom-accent #vt-resume-btn {
+    background-color: var(--vt-accent, #14283b);
+    color: #ffffff;
+}
+
+.videotrack-card.vt-has-custom-accent #vt-resume-btn:hover {
+    background-color: var(--vt-accent, #1a364d);
+    filter: brightness(1.08);
+    color: #ffffff;
+}
+
+.videotrack-card.vt-has-custom-accent #vt-resume-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.35), 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
 #vt-resume-btn i {
     font-size: 18px;
 }
@@ -448,7 +486,8 @@ video::cue {
 #vt-reaction-markers > div {
     font-size: 20px !important;
     line-height: 1;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+    filter: none !important;
+    text-shadow: none !important;
 }
 
 .vt-player-wrapper:hover #vt-reaction-markers,
@@ -554,6 +593,10 @@ video::cue {
     padding: 0;
 }
 
+.videotrack-card.vt-has-custom-accent .vt-seek-slider {
+    background: linear-gradient(to right, var(--vt-accent, #fff) var(--vt-progress, 0%), rgba(255, 255, 255, 0.3) var(--vt-progress, 0%));
+}
+
 .vt-seek-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
@@ -646,8 +689,18 @@ video::cue {
     box-shadow: none !important;
 }
 
+#page-mod-videotrack-view .activity-navigation,
+#page-mod-videotrack-view .section-navigation,
+#page-mod-videotrack-view [data-region="activity-navigation"],
+#page-mod-videotrack-view #prev-activity-link,
+#page-mod-videotrack-view #next-activity-link,
 #page-mod-videotrack-view.pagelayout-embedded .activity-header,
-#page-mod-videotrack-view.pagelayout-embedded .activity-information {
+#page-mod-videotrack-view.pagelayout-embedded .activity-information,
+#page-mod-videotrack-view.pagelayout-embedded .activity-navigation,
+#page-mod-videotrack-view.pagelayout-embedded .section-navigation,
+#page-mod-videotrack-view.pagelayout-embedded [data-region="activity-navigation"],
+#page-mod-videotrack-view.pagelayout-embedded footer,
+#page-mod-videotrack-view.pagelayout-embedded #page-footer {
     display: none !important;
 }
 
@@ -669,7 +722,7 @@ video::cue {
 
 .vt-course-inline-iframe {
     width: 100%;
-    min-height: 860px;
+    min-height: 480px;
     border: 0;
     border-radius: 16px;
     overflow: hidden;
@@ -871,6 +924,12 @@ video::cue {
         font-size: 0.74rem !important;
     }
 
+    .vt-completed-check {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 12px !important;
+    }
+
     /* Compact single-line Resume Button on mobile */
     #vt-resume-btn {
         padding: 8px 18px !important;
@@ -1000,18 +1059,23 @@ body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-info {
 body:not(.editing) .activity.vt-mode-card-popup:not(.subtile) .activity-altcontent,
 body:not(.editing) .activity.vt-mode-card-popup:not(.subtile) .description,
 body:not(.editing) .activity.vt-mode-card-popup:not(.subtile) .activity-description,
+body:not(.editing) .activity.vt-mode-card-popup:not(.subtile) .course-description-item,
+body:not(.editing) .activity.vt-mode-card-popup:not(.subtile) .description-inner,
 body:not(.editing) .activity.vt-mode-card-popup:not(.subtile) .contentwithoutlink,
 body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-altcontent,
 body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .description,
 body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .activity-description,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .course-description-item,
+body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .description-inner,
 body:not(.editing) .activity.vt-mode-inline-embed:not(.subtile) .contentwithoutlink {
     grid-column: 1 / -1;
-    border-top: 0 !important;
-    border-bottom: 0 !important;
-    margin-top: 0 !important;
-    margin-left: 0 !important;
-    padding-top: 0 !important;
-    padding-left: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* Compatibility with format_tiles (Moodle Tiles Course Format) */

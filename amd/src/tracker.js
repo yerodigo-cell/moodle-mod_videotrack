@@ -70,7 +70,6 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
             // Detect if current player contains a Google Drive preview iframe.
             var gdriveIframe = document.querySelector('.vt-player-wrapper iframe[src*="drive.google.com"]');
             var isGDriveIframe = !!gdriveIframe;
-            var gdriveOriginalSrc = isGDriveIframe ? gdriveIframe.getAttribute('src') : '';
 
             /**
              * Checks whether the browser is currently in or transitioning into/out of Fullscreen mode.
@@ -167,77 +166,13 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 }
             };
 
-            /**
-             * Shows a clean Focus Mode pause overlay for Google Drive iframes (since GDrive has no JS pause API).
-             */
-            var pauseGDriveByFocus = function() {
-                if (!isGDriveIframe || !gdriveIframe) {
-                    return;
-                }
-                if (gdriveIframe.getAttribute('src') === 'about:blank') {
-                    return;
-                }
-                gdriveIframe.setAttribute('src', 'about:blank');
-                setFocusBadgeState(true);
-
-                var $overlay = $('#vt-gdrive-focus-overlay');
-                if (!$overlay.length) {
-                    var pausedLabel = $('#vt-focus-badge').attr('data-paused-text') || 'Paused — Focus Mode';
-                    $overlay = $('<div id="vt-gdrive-focus-overlay"></div>').css({
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        background: 'rgba(15, 23, 42, 0.86)',
-                        backdropFilter: 'blur(4px)',
-                        zIndex: 40,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '14px',
-                        color: '#ffffff',
-                        textAlign: 'center',
-                        padding: '20px'
-                    });
-                    var $btn = $('<button type="button" class="vt-gdrive-resume-btn"></button>').css({
-                        background: 'var(--vt-accent, #0ea5e9)',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '999px',
-                        padding: '12px 28px',
-                        fontSize: '1rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)'
-                    }).html('<i class="fa fa-play"></i> <span>' + pausedLabel + '</span>');
-
-                    $btn.on('click', function(e) {
-                        e.preventDefault();
-                        gdriveIframe.setAttribute('src', gdriveOriginalSrc);
-                        $overlay.fadeOut(200);
-                        isWindowFocused = true;
-                        setFocusBadgeState(false);
-                        reclaimWindowFocus();
-                    });
-
-                    $overlay.append($btn);
-                    $('.vt-player-wrapper').append($overlay);
-                } else {
-                    $overlay.fadeIn(150);
-                }
-            };
-
             var triggerFocusPause = function() {
                 if (!focusMode) {
                     return;
                 }
                 if (isGDriveIframe) {
-                    pauseGDriveByFocus();
+                    setFocusBadgeState(true);
+                    reclaimWindowFocus();
                     return;
                 }
                 if (!isYouTube && !isManualTrack) {
@@ -274,7 +209,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                         triggerFocusPause();
                     } else {
                         isWindowFocused = true;
-                        if (isManualTrack && !isGDriveIframe) {
+                        if (isManualTrack || isGDriveIframe) {
                             setFocusBadgeState(false);
                         }
                     }
@@ -292,9 +227,9 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                         if (activeEl && activeEl.tagName === 'IFRAME' &&
                             $(activeEl).closest('.vt-player-wrapper').length > 0 &&
                             !document.hidden && document.hasFocus()) {
-                            if (!isGDriveIframe) {
-                                reclaimWindowFocus();
-                            }
+                            isWindowFocused = true;
+                            setFocusBadgeState(false);
+                            reclaimWindowFocus();
                             return;
                         }
                         if (!document.hasFocus()) {
@@ -306,7 +241,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
 
                 var handleWindowFocus = function() {
                     isWindowFocused = true;
-                    if (isManualTrack && !isGDriveIframe && !document.hidden) {
+                    if ((isManualTrack || isGDriveIframe) && !document.hidden) {
                         setFocusBadgeState(false);
                     }
                 };
@@ -330,6 +265,28 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
 
             if (focusMode) {
                 initFocusListeners();
+                if (isGDriveIframe || isManualTrack) {
+                    setInterval(function () {
+                        if (isFullscreenOrTransitioning() && !document.hidden) {
+                            return;
+                        }
+                        var hasFocusNow = !document.hidden && document.hasFocus();
+                        if (!hasFocusNow) {
+                            try {
+                                if (window.top && window.top !== window && window.top.document && window.top.document.hasFocus()) {
+                                    hasFocusNow = true;
+                                }
+                            } catch (e) { }
+                        }
+                        if (!hasFocusNow && isWindowFocused) {
+                            isWindowFocused = false;
+                            triggerFocusPause();
+                        } else if (hasFocusNow && !isWindowFocused) {
+                            isWindowFocused = true;
+                            setFocusBadgeState(false);
+                        }
+                    }, 400);
+                }
             }
 
             var isSaving = false;
