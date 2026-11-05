@@ -229,8 +229,8 @@
             {{^isgdrive}}
                 <!-- Native HTML5 Player (Local files / Direct MP4) -->
                 <div class="vt-video-container vt-html5-container" style="border-radius: 0; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; width: 100%; height: var(--vt-h5-h, auto);">
-                    <video id="videotrack-player" preload="metadata" playsinline crossorigin="anonymous" style="width: 100%; max-height: var(--vt-h5-maxh, 650px); object-fit: contain; display: block;">
-                        {{#videourl}}<source src="{{videourl}}" type="video/mp4">{{/videourl}}
+                    <video id="videotrack-player" preload="metadata" playsinline style="width: 100%; max-height: var(--vt-h5-maxh, 650px); object-fit: contain; display: block;">
+                        <source src="{{videourl}}" type="video/mp4">
                         {{#hascaptions}}
                         <track id="vt-captions-track" kind="captions" src="{{captionsurl}}" srclang="en" label="Subtitles" default>
                         {{/hascaptions}}
