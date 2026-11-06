@@ -24,19 +24,25 @@
 
 namespace mod_videotrack\external;
 
-use context_module;
 use completion_info;
-use external_api;
-use external_function_parameters;
-use external_value;
-use external_single_structure;
+use context_module;
+use core_external\external_api;
+use core_external\external_function_parameters;
+use core_external\external_single_structure;
+use core_external\external_value;
 use invalid_parameter_exception;
 use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
-global $CFG;
-require_once($CFG->libdir . '/externallib.php');
+if (!class_exists(external_api::class)) {
+    global $CFG;
+    require_once($CFG->libdir . '/externallib.php');
+    class_alias('external_api', external_api::class);
+    class_alias('external_function_parameters', external_function_parameters::class);
+    class_alias('external_single_structure', external_single_structure::class);
+    class_alias('external_value', external_value::class);
+}
 
 /**
  * Save progress external API.
