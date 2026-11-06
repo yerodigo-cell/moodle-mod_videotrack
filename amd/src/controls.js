@@ -35,7 +35,6 @@ define(['jquery'], function($) {
             var wrapper = $('.vt-player-wrapper')[0];
             var video = document.getElementById('videotrack-player');
             var isSeeking = false;
-            var captionsEnabled = true;
             var parsedCues = [];
 
             // Start in paused visual state so controls are visible initially
@@ -103,7 +102,9 @@ define(['jquery'], function($) {
 
             // Load and parse .vtt or .srt directly so subtitles work reliably in all browsers
             var trackEl = document.getElementById('vt-captions-track');
-            if (trackEl && trackEl.getAttribute('src')) {
+            var hasCustomTrack = !!(trackEl && trackEl.getAttribute('src'));
+            var captionsEnabled = hasCustomTrack;
+            if (hasCustomTrack) {
                 $.ajax({
                     url: trackEl.getAttribute('src'),
                     dataType: 'text',
@@ -151,15 +152,9 @@ define(['jquery'], function($) {
             };
 
             var renderActiveCues = function() {
-                if (!video || !captionsEnabled) {
+                if (!video || !hasCustomTrack || !captionsEnabled || parsedCues.length === 0) {
                     customCaptions.hide().empty();
                     return;
-                }
-
-                if (video.textTracks && video.textTracks.length > 0) {
-                    if (video.textTracks[0].mode !== 'hidden') {
-                        video.textTracks[0].mode = 'hidden';
-                    }
                 }
 
                 var ct = video.currentTime || 0;
@@ -167,20 +162,10 @@ define(['jquery'], function($) {
                 var lf = String.fromCharCode(10);
                 var i;
 
-                if (parsedCues.length > 0) {
-                    for (i = 0; i < parsedCues.length; i++) {
-                        if (ct >= parsedCues[i].start && ct <= parsedCues[i].end) {
-                            var safeParsed = $('<div>').text(parsedCues[i].text).html().split(lf).join('<br>');
-                            lines.push(safeParsed);
-                        }
-                    }
-                } else if (video.textTracks && video.textTracks.length > 0 && video.textTracks[0].activeCues) {
-                    var activeCues = video.textTracks[0].activeCues;
-                    for (i = 0; i < activeCues.length; i++) {
-                        if (activeCues[i].text) {
-                            var safeNative = $('<div>').text(activeCues[i].text).html().split(lf).join('<br>');
-                            lines.push(safeNative);
-                        }
+                for (i = 0; i < parsedCues.length; i++) {
+                    if (ct >= parsedCues[i].start && ct <= parsedCues[i].end) {
+                        var safeParsed = $('<div>').text(parsedCues[i].text).html().split(lf).join('<br>');
+                        lines.push(safeParsed);
                     }
                 }
 
@@ -278,11 +263,39 @@ define(['jquery'], function($) {
                 }
             };
 
+            var getPlayerDuration = function() {
+                if (isYouTube && window.ytPlayer && typeof window.ytPlayer.getDuration === 'function') {
+                    return Number(window.ytPlayer.getDuration()) || 0;
+                }
+                if (video && video.duration) {
+                    return Number(video.duration) || 0;
+                }
+                return 0;
+            };
+
+            var clampSeekPercent = function(rawPercent) {
+                var pct = Number(rawPercent) || 0;
+                if (typeof window.videotrackGetMaxAllowedPercent === 'function') {
+                    var maxPct = window.videotrackGetMaxAllowedPercent(getPlayerDuration());
+                    if (pct > maxPct) {
+                        pct = maxPct;
+                    }
+                }
+                return pct;
+            };
+
             var onSeek = function() {
-                var percent = seekSlider.val();
+                if ($('#vt-resume-overlay').is(':visible')) {
+                    $('#vt-resume-overlay').fadeOut(150);
+                }
+                var percent = clampSeekPercent(seekSlider.val());
+                seekSlider.val(percent);
+                seekSlider.css('--vt-progress', percent + '%');
                 if (isYouTube && window.ytPlayer) {
                     var duration = window.ytPlayer.getDuration();
-                    window.ytPlayer.seekTo((percent / 100) * duration, true);
+                    if (duration > 0) {
+                        window.ytPlayer.seekTo((percent / 100) * duration, true);
+                    }
                 } else if (video && video.duration) {
                     video.currentTime = (percent / 100) * video.duration;
                     renderActiveCues();
@@ -297,7 +310,9 @@ define(['jquery'], function($) {
 
             seekSlider.on('input', function() {
                 isSeeking = true;
-                seekSlider.css('--vt-progress', $(this).val() + '%');
+                var clampedPct = clampSeekPercent($(this).val());
+                $(this).val(clampedPct);
+                seekSlider.css('--vt-progress', clampedPct + '%');
             });
             seekSlider.on('change', function() {
                 onSeek();
@@ -306,11 +321,14 @@ define(['jquery'], function($) {
 
             // HTML5 Video Events
             if (video) {
-                if (video.textTracks && video.textTracks.length > 0) {
-                    var track = video.textTracks[0];
-                    track.mode = 'hidden';
-                    track.addEventListener('cuechange', renderActiveCues);
-                }
+                var disableNativeTracks = function() {
+                    if (video.textTracks && video.textTracks.length > 0) {
+                        for (var t = 0; t < video.textTracks.length; t++) {
+                            video.textTracks[t].mode = 'disabled';
+                        }
+                    }
+                };
+                disableNativeTracks();
 
                 video.addEventListener('error', function() {
                     var error = video.error;
@@ -353,8 +371,8 @@ define(['jquery'], function($) {
                 });
                 video.addEventListener('loadedmetadata', function() {
                     updateTimeUI(video.currentTime, video.duration);
-                    if (video.textTracks && video.textTracks.length > 0) {
-                        video.textTracks[0].mode = 'hidden';
+                    disableNativeTracks();
+                    if (hasCustomTrack && captionsEnabled) {
                         ccBtn.addClass('vt-cc-active');
                     }
                     renderActiveCues();

@@ -34,19 +34,15 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
             manualTime,
             focusMode
         ) {
+            targetPercent = Number(targetPercent) || 0;
             var highestPercent = Number(currentPercent) || 0;
-            if (highestPercent >= 98) {
-                highestPercent = 100;
-            }
             var lastSavedPercent = highestPercent;
             var lastSavedTime = Number(highestTime) || 0;
             var completed = targetPercent > 0 ? (highestPercent >= targetPercent) : false;
             var maxAllowedTime = Number(highestTime) || 0;
             var isForcing = false;
-            var isResuming = false;
-            var resumeTimer = null;
-            var pendingResumePercent = 0;
-            var pendingResumeSeconds = 0;
+            var pendingResumePercent = Number(currentPercent) || 0;
+            var pendingResumeSeconds = Number(highestTime) || 0;
             var isWindowFocused = true;
             var isFreeNavigation = (targetPercent <= 0);
 
@@ -58,13 +54,15 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 }
                 pendingResumeSeconds = sec;
                 pendingResumePercent = pct;
-                isResuming = true;
-                if (resumeTimer) {
-                    clearTimeout(resumeTimer);
+            };
+
+            window.videotrackGetMaxAllowedPercent = function(duration) {
+                if (isFreeNavigation) {
+                    return 100;
                 }
-                resumeTimer = setTimeout(function() {
-                    isResuming = false;
-                }, 4000);
+                var dur = Number(duration) || 0;
+                var byTime = (dur > 0) ? ((maxAllowedTime / dur) * 100) : 0;
+                return Math.min(100, Math.max(0, highestPercent, byTime));
             };
 
             // Detect if current player contains a Google Drive preview iframe.
@@ -331,15 +329,9 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
 
             var saveProgress = function(percent, forceSave) {
                 var floorPercent = Math.min(100, Math.max(0, Math.floor(percent)));
-                if (floorPercent >= 98) {
-                    floorPercent = 100;
-                }
                 var floorTime = getLatestPlaybackTime();
 
                 var reqPercent = Math.max(floorPercent, Math.floor(highestPercent), lastSavedPercent);
-                if (reqPercent >= 98) {
-                    reqPercent = 100;
-                }
                 var reqTime = Math.max(floorTime, lastSavedTime);
 
                 if (!forceSave && reqPercent <= lastSavedPercent && reqTime <= lastSavedTime) {
@@ -395,7 +387,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
 
             var updateUI = function(percent, durationSec, currentSec) {
                 var clamped = Math.min(100, Math.max(0, percent));
-                if (clamped >= 98 || (durationSec && durationSec > 2 && currentSec && (durationSec - currentSec <= 1.2))) {
+                if (durationSec && durationSec > 2 && currentSec && (durationSec - currentSec <= 1.5)) {
                     clamped = 100;
                 }
                 if (clamped > highestPercent) {
@@ -469,7 +461,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                     });
 
                     video.addEventListener('seeking', function() {
-                        if (isFreeNavigation || isResuming) {
+                        if (isFreeNavigation) {
                             return;
                         }
                         if (isForcing || video.duration <= 0) {
@@ -508,7 +500,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                             maxAllowedTime = recordedMax;
                         }
 
-                        if (!isResuming && video.currentTime > maxAllowedTime + 1.5) {
+                        if (video.currentTime > maxAllowedTime + 1.5) {
                             isForcing = true;
                             video.currentTime = maxAllowedTime;
                             setTimeout(function() {
@@ -559,10 +551,12 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                 };
 
                 var enforceYtSeekLimit = function(state, duration, currentTime) {
-                    if (isFreeNavigation || isResuming || !(duration > 0)) {
+                    if (isFreeNavigation || !(duration > 0)) {
                         return;
                     }
-                    if (state == YT.PlayerState.BUFFERING || state == YT.PlayerState.PLAYING) {
+                    if (state == YT.PlayerState.BUFFERING ||
+                        state == YT.PlayerState.PLAYING ||
+                        state == YT.PlayerState.PAUSED) {
                         if (currentTime > maxAllowedTime + 1.5) {
                             window.ytPlayer.seekTo(maxAllowedTime, true);
                         }
@@ -633,7 +627,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, ajax, notificat
                                 updateUI((eCurrentTime / eDuration) * 100, eDuration, eCurrentTime);
                                 return;
                             }
-                            if (!isResuming && eCurrentTime > maxAllowedTime + 1.5) {
+                            if (eCurrentTime > maxAllowedTime + 1.5) {
                                 window.ytPlayer.seekTo(maxAllowedTime, true);
                             } else if (eCurrentTime > maxAllowedTime) {
                                 maxAllowedTime = eCurrentTime;

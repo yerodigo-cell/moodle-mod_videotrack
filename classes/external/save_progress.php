@@ -96,11 +96,6 @@ class save_progress extends external_api {
             throw new invalid_parameter_exception('Progress out of range.');
         }
 
-        // Normalize 98%+ to 100% on the server as well so videos stopping milliseconds before the end reach 100%.
-        if ($percent >= 98) {
-            $percent = 100;
-        }
-
         $cm = get_coursemodule_from_id('videotrack', $cmid, 0, false, MUST_EXIST);
         $videotrack = $DB->get_record(
             'videotrack',
@@ -140,9 +135,6 @@ class save_progress extends external_api {
         }
 
         $effectivepercent = $progress ? max((int)$progress->highestpercent, $percent) : $percent;
-        if ($effectivepercent >= 98) {
-            $effectivepercent = 100;
-        }
         $completed = ($targetpercent <= 0 || $effectivepercent >= $targetpercent) ? 1 : 0;
 
         if ($progress) {
