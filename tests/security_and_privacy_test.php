@@ -17,6 +17,7 @@
 /**
  * Security and privacy regression tests for mod_videotrack.
  *
+ * @runTestsInSeparateProcesses
  * Covers:
  * - mod_videotrack/VTRK-SEC-001 (progress range and server-side plausibility checks)
  * - mod_videotrack/VTRK-SEC-002 (strict HeyGen HTTPS host allowlist)
